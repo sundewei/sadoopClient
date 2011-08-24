@@ -52,6 +52,20 @@
 
     </target>
 
+    <target name="distWithSource" depends="compile" description="generate the distribution">
+        <!-- Create the distribution directory -->
+        <mkdir dir="${dist}"/>
+        <!-- Put everything in ${build} into the MyProject-${DSTAMP}.jar file -->
+
+        <copy todir="${build}">
+             <fileset file="src/**"/>
+        </copy>
+
+        <jar jarfile="${dist}/sap_hadoop_example.jar" basedir="${build}"/>
+        <!--<jar jarfile="${dist}/index-complete.jar" basedir="${dist}" manifest="${manifest}/MANIFEST.MF"/>-->
+
+    </target>
+
     <target name="clean" depends="clean-compile-test" description="clean up">
         <!-- Delete the ${build} and ${dist} directory trees -->
         <delete dir="${build}"/>

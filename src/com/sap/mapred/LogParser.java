@@ -101,23 +101,42 @@ public class LogParser implements ITask {
     }
 
     private static AccessData getAccessData(String line) {
+        // An AccessData object will be created for each line if possible
         AccessData accessData = null;
         try {
-            accessData = new AccessData();
+	        accessData = new AccessData();
+	        // Parse the value separated line using space as the delimiter
             CSVParser csvParser = new CSVParser(new StringReader(line));
             csvParser.getStrategy().setDelimiter(' ');
-            String[] values = csvParser.getLine();
-            for (String value : values) {
-                System.out.println(value);
-            }
 
+            // Now get all the values from the line
+            String[] values = csvParser.getLine();
+
+            // Get the IP
             accessData.ip = values[0];
+
+            // The time is split into 2 values so they have to be combined
+            // then sent to match the time regular expression
+            // "[02/Aug/2011:00:00:04" + " -0700]" = "[02/Aug/2011:00:00:04 -0700]"
             accessData.timestamp = new Timestamp(DATA_FORMAT.parse(values[3] + " " + values[4]).getTime());
+
+            // The resource filed has 3 fields (HTTP Method, Page and HTTP protocol)
+            // so it has to be further split by spaces
             String reqInfo = values[5];
             String[] reqInfoArr = reqInfo.split(" ");
+
+            // Get the HTTP method
             accessData.method = reqInfoArr[0];
+
+            // Get the page requested
             accessData.resource = reqInfoArr[1];
+
+            // Get the HTTP response code
             accessData.httpCode = Integer.parseInt(values[6]);
+
+            // Try to get the response data size in bytes, if a hyphen shows up,
+            // that means the client has a cache of this page and no data is
+            // sent back
             try {
                 accessData.dataLength = Long.parseLong(values[7]);
             } catch (NumberFormatException nfe) {
@@ -147,8 +166,6 @@ public class LogParser implements ITask {
             inputPath = cm.getRemoteFolder() + "accessLogs/";
         }
         outputPath = inputPath + "parsed/";
-System.out.println("\n\n\n\n\n\n\n\n\ninputPath="+inputPath);
-System.out.println("outputPath="+outputPath);
 
         // Delete the output directory if it already exists
         if (filesystem.exists(outputPath)) {

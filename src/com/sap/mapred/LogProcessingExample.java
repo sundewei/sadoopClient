@@ -1,5 +1,7 @@
 package com.sap.mapred;
 
+import org.apache.hadoop.mapreduce.Job;
+
 /**
  * Created by IntelliJ IDEA.
  * User: I827779
@@ -15,15 +17,16 @@ public class LogProcessingExample {
         } else {
             lp = new LogParser(null);
         }
-        ProductTrend pt = new ProductTrend(lp.getOutputPath());
+        Job job1 = lp.getMapReduceJob();
 
-        boolean doneWithoutError = lp.getMapReduceJob().waitForCompletion(true);
-System.out.println("lp.getInputPath()="+lp.getInputPath());
+        ProductTrend pt = new ProductTrend(lp.getOutputPath());
+        Job job2 = pt.getMapReduceJob();
+System.out.println("\n\n\n\n\nlp.getInputPath()="+lp.getInputPath());
 System.out.println("lp.getOutputPath()="+lp.getOutputPath());
-        if (doneWithoutError) {
-            pt.getMapReduceJob().waitForCompletion(true);
 System.out.println("pt.getInputPath()="+pt.getInputPath());
-System.out.println("pt.getOutputPath()="+pt.getOutputPath());
+System.out.println("pt.getOutputPath()=" + pt.getOutputPath());
+        if (job1.waitForCompletion(true)) {
+            job2.waitForCompletion(false);
         }
     }
 }
