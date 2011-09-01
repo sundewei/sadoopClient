@@ -27,8 +27,6 @@ public class UploadExample {
         UploadStep uploadStep2 = new UploadStep("Section");
         uploadStep2.setLocalFilename(LOCAL_DATA_DIR + "small_sections.tsv");
         uploadStep2.setRemoteFilename(context.getRemoteWorkingFolder() + "small_sections.tsv");
-        // If you want step 2 to depend on step 1
-        // context.addStep(uploadStep2, uploadStep1);
 
         // To have both steps run in parallel, add step 1 and 2 like this
         context.addStep(uploadStep1);

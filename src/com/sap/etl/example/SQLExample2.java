@@ -1,6 +1,9 @@
 package com.sap.etl.example;
 
 import com.sap.hadoop.conf.ConfigurationManager;
+import com.sap.hadoop.etl.ContextFactory;
+import com.sap.hadoop.etl.IContext;
+import com.sap.hadoop.etl.SQLStep;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -15,22 +18,61 @@ import java.sql.Statement;
  * To change this template use File | Settings | File Templates.
  */
 public class SQLExample2 {
-    public static void main(String[] arg) throws SQLException {
+    public static void main(String[] arg) throws Exception {
         ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
-        // Get a JDBC connection to the Hive instance
-        Connection conn = cm.getConnection();
-        Statement stmt = conn.createStatement();
-        long start = System.currentTimeMillis();
-        // Get the ResultSet
-        ResultSet rs = stmt.executeQuery(" SELECT sections.name, category.name " +
-                " FROM sections JOIN category " +
-                "      ON (sections.article_wpid = category.article_wpid)");
-        int resultCount = 1;
-        while (rs.next()) {
-            System.out.println(resultCount + ", " + rs.getString(1) + ", " + rs.getString(2));
-            resultCount++;
-        }
-        long end = System.currentTimeMillis();
-        System.out.println("Took " + (end - start) / 1000 + " seconds");
+        IContext context = ContextFactory.createContext(cm);
+
+        // Create the join table
+        SQLStep createJoinTable = new SQLStep("CREATE TABLE section_category");
+        createJoinTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS section_category " +
+                                    " ( id INT, parent_id INT, section_name STRING, category_name STRING ) " +
+                                    "   ROW FORMAT DELIMITED " +
+                                    " FIELDS TERMINATED BY '\t' " +
+                                    " STORED AS TEXTFILE ");
+
+        // Create the table exactly like the join table but we are going to store the section info whose parent id is NOT NULL
+        SQLStep createChildTable = new SQLStep("CREATE TABLE child_section_category");
+        createChildTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS child_section_category " +
+                                    " ( id INT, parent_id INT, section_name STRING, category_name STRING ) " +
+                                    "   ROW FORMAT DELIMITED " +
+                                    " FIELDS TERMINATED BY '\t' " +
+                                    " STORED AS TEXTFILE ");
+
+        // Create the table exactly like the join table but we are going to store the section info whose parent id is NULL
+        SQLStep createOrphanTable = new SQLStep("CREATE TABLE orphan_section_category");
+        createOrphanTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS orphan_section_category " +
+                                    " ( id INT, parent_id INT, section_name STRING, category_name STRING ) " +
+                                    "   ROW FORMAT DELIMITED " +
+                                    " FIELDS TERMINATED BY '\t' " +
+                                    " STORED AS TEXTFILE ");
+
+        // The actual Join step
+        SQLStep joinTable = new SQLStep("JoinTables");
+        joinTable.setSql(
+                " INSERT OVERWRITE TABLE section_category " +
+                " SELECT sections.id, sections.parent_id, sections.name, category.name " +
+                " FROM sections JOIN category  " +
+                "      ON (sections.article_id = category.article_id)");
+
+        // The output step to write to 2 tables and 1 directory
+        SQLStep multipleOutput = new SQLStep("MultipleOutput");
+        multipleOutput.setSql(
+                " FROM section_category " +
+                " INSERT OVERWRITE TABLE child_section_category SELECT * WHERE section_category.parent_id IS NOT NULL " +
+                " INSERT OVERWRITE TABLE orphan_section_category SELECT * WHERE section_category.parent_id IS NULL " +
+                " INSERT OVERWRITE DIRECTORY '/user/I827779/section10/' SELECT * WHERE section_category.parent_id <= 10");
+
+        // The 3 table creation steps can run without dependency
+        context.addStep(createJoinTable);
+        context.addStep(createChildTable);
+        context.addStep(createOrphanTable);
+
+        // The joinTable step needs to depend on the create table step
+        context.addStep(joinTable, createJoinTable);
+
+        // The multipleOutput step needs to wait for the joinTable and 2 table creations before it can start
+        context.addStep(multipleOutput, createChildTable, createOrphanTable, joinTable);
+
+        context.runSteps();
     }
 }
