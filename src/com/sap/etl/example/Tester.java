@@ -23,20 +23,15 @@ import java.util.jar.JarFile;
  */
 public class Tester {
     public static void main(String[] arg) throws Exception {
-        JarFile jarFile = new JarFile(arg[0]);
-        Enumeration<JarEntry> entries = jarFile.entries();
-        List<String> resourceEntries = new ArrayList<String>();
 
-        while (entries.hasMoreElements()) {
-            resourceEntries.add(entries.nextElement().toString());
+        ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
+        IContext context = ContextFactory.createContext(cm);
 
-        }
-        if (resourceEntries.size() == 0) {
-            throw new IOException("No jar entry found in the uploaded jar file: " + arg[0]);
-        }
+        UploadStep u = new UploadStep("freebase-wex-2011-04-30-sections.tsv");
+        u.setLocalFilename("C:\\projects\\freebase-wex-2011-04-30\\freebase-wex-2011-04-30-sections.tsv");
+        u.setRemoteFilename(cm.getRemoteFolder() + "freebase-wex-2011-04-30-sections.tsv");
 
-        for (String c: resourceEntries){
-            System.out.println("cccc=="+c);
-        }
+        context.addStep(u);
+        context.runSteps();
     }
 }

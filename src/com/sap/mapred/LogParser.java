@@ -104,8 +104,8 @@ public class LogParser implements ITask {
         // An AccessData object will be created for each line if possible
         AccessData accessData = null;
         try {
-	        accessData = new AccessData();
-	        // Parse the value separated line using space as the delimiter
+            accessData = new AccessData();
+            // Parse the value separated line using space as the delimiter
             CSVParser csvParser = new CSVParser(new StringReader(line));
             csvParser.getStrategy().setDelimiter(' ');
 
