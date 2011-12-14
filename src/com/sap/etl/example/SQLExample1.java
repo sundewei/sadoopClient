@@ -18,7 +18,7 @@ import java.io.IOException;
 public class SQLExample1 {
 
     public static void main(String[] arg) throws Exception {
-        ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
+        ConfigurationManager cm = new ConfigurationManager("hadoop", "hadoop");
         IContext context = ContextFactory.createContext(cm);
 
         ///////////////////////////////////////////////////////////////////////
@@ -44,7 +44,7 @@ public class SQLExample1 {
         ///////////////////////////////////////////////////////////////////////
         SQLStep createSectionsTable = new SQLStep("CREATE TABLE sections");
         createSectionsTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS sections " +
-                                    " ( id BIGINT, " +
+                                    " ( sessionNum BIGINT, " +
                                     "   parent_id BIGINT, " +
                                     "   ordinal INT, " +
                                     "   article_id INT, " +

@@ -102,7 +102,7 @@ public class HBaseExample1 {
         // Load the data from CSV
         loadData(htable, "c:\\data\\exported_games.csv");
 
-        // Try to find an object based on the id as a number
+        // Try to find an object based on the sessionNum as a number
         findGObject(htable, 110575L);
     }
 

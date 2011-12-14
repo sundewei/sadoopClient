@@ -1,0 +1,1 @@
+java -Xmx6000M -cp .;C:\projects\sadoopClient\lib\httpcore-4.1.2.jar;C:\projects\sadoopClient\lib\httpclient-4.1.2.jar;C:\projects\sadoopClient\lib\commons-csv-0.1-SNAPSHOT.jar;C:\projects\sadoopClient\lib\ngdbc.jar;C:\projects\sadoopClient\lib\log4j-1.2.15.jar;C:\projects\sadoopClient\lib\commons-io-2.0.1.jar com.sap.demo.PosRowGenerator

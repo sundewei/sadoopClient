@@ -21,11 +21,14 @@ import java.util.TreeMap;
 public class SandBox {
     public static void main(String[] arg) throws Exception {
         String file = "C:\\projects\\sadoopClient\\data\\GeoLiteCity-Location.csv";
-        Class.forName("com.sap.db.jdbc.Driver").newInstance();
-        //String url = "jdbc:sap://10.79.0.21:34015/I827779";
-        String url = "jdbc:sap://COE-HE-28.WDF.SAP.CORP:30115/I827779";
-        //Connection conn = DriverManager.getConnection(url, "SYSTEM", "manager");
-        Connection conn = DriverManager.getConnection(url, "I827779", "Google6377");
+        //Class.forName("com.sap.db.jdbc.Driver").newInstance();
+        //String url = "jdbc:sap://COE-HE-28.WDF.SAP.CORP:30115/I827779";
+        //Connection conn = DriverManager.getConnection(url, "I827779", "Google6377");
+
+        Class.forName("com.mysql.jdbc.Driver").newInstance();
+        String url = "jdbc:mysql://hadoop01:3306/test";
+        Connection conn = DriverManager.getConnection(url, "root", "root");
+
         conn.setAutoCommit(false);
         String query =
                 " INSERT INTO CITY_LOCATIONS (LOC_ID, COUNTRY, REGION, CITY, POSTAL_CODE, LATITUDE, LONGITUDE, METRO_CODE, AREA_CODE) " +

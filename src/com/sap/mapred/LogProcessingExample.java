@@ -21,10 +21,6 @@ public class LogProcessingExample {
 
         ProductTrend pt = new ProductTrend(lp.getOutputPath());
         Job job2 = pt.getMapReduceJob();
-        System.out.println("\n\n\n\n\nlp.getInputPath()=" + lp.getInputPath());
-        System.out.println("lp.getOutputPath()=" + lp.getOutputPath());
-        System.out.println("pt.getInputPath()=" + pt.getInputPath());
-        System.out.println("pt.getOutputPath()=" + pt.getOutputPath());
         if (job1.waitForCompletion(true)) {
             job2.waitForCompletion(false);
         }

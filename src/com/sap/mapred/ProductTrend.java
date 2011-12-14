@@ -119,9 +119,10 @@ public class ProductTrend implements ITask {
 
         public void map(LongWritable inKey, Text inValue, Context context)
                 throws IOException, InterruptedException {
+System.out.println("In ProductTrendMapper...");
             // Get the visited timestamp and product list
             String timeProducts = inValue.toString().split("\t")[1];
-
+System.out.println("timeProducts="+timeProducts);
             // Now divide the list by comma
             String[] timeProduct = timeProducts.split(",");
 

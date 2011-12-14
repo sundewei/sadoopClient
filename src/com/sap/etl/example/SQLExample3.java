@@ -16,7 +16,7 @@ import java.sql.Statement;
  */
 public class SQLExample3 {
     public static void main(String[] arg) throws SQLException {
-        ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
+        ConfigurationManager cm = new ConfigurationManager("hadoop", "hadoop");
         // Get a JDBC connection to the Hive instance
         Connection conn = cm.getConnection();
         Statement stmt = conn.createStatement();

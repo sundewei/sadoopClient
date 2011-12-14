@@ -19,38 +19,38 @@ import java.sql.Statement;
  */
 public class SQLExample2 {
     public static void main(String[] arg) throws Exception {
-        ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
+        ConfigurationManager cm = new ConfigurationManager("hadoop", "hadoop");
         IContext context = ContextFactory.createContext(cm);
 
         // Create the join table
         SQLStep createJoinTable = new SQLStep("CREATE TABLE section_category");
         createJoinTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS section_category " +
-                                    " ( id INT, parent_id INT, section_name STRING, category_name STRING ) " +
+                                    " ( sessionNum INT, parent_id INT, section_name STRING, category_name STRING ) " +
                                     "   ROW FORMAT DELIMITED " +
-                                    " FIELDS TERMINATED BY '\t' " +
-                                    " STORED AS TEXTFILE ");
+                                    "   FIELDS TERMINATED BY '\t' " +
+                                    "   STORED AS TEXTFILE ");
 
-        // Create the table exactly like the join table but we are going to store the section info whose parent id is NOT NULL
+        // Create the table exactly like the join table but we are going to store the section info whose parent sessionNum is NOT NULL
         SQLStep createChildTable = new SQLStep("CREATE TABLE child_section_category");
         createChildTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS child_section_category " +
-                                    " ( id INT, parent_id INT, section_name STRING, category_name STRING ) " +
+                                    " ( sessionNum INT, parent_id INT, section_name STRING, category_name STRING ) " +
                                     "   ROW FORMAT DELIMITED " +
-                                    " FIELDS TERMINATED BY '\t' " +
-                                    " STORED AS TEXTFILE ");
+                                    "   FIELDS TERMINATED BY '\t' " +
+                                    "   STORED AS TEXTFILE ");
 
-        // Create the table exactly like the join table but we are going to store the section info whose parent id is NULL
+        // Create the table exactly like the join table but we are going to store the section info whose parent sessionNum is NULL
         SQLStep createOrphanTable = new SQLStep("CREATE TABLE orphan_section_category");
         createOrphanTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS orphan_section_category " +
-                                    " ( id INT, parent_id INT, section_name STRING, category_name STRING ) " +
+                                    " ( sessionNum INT, parent_id INT, section_name STRING, category_name STRING ) " +
                                     "   ROW FORMAT DELIMITED " +
-                                    " FIELDS TERMINATED BY '\t' " +
-                                    " STORED AS TEXTFILE ");
+                                    "   FIELDS TERMINATED BY '\t' " +
+                                    "   STORED AS TEXTFILE ");
 
         // The actual Join step
         SQLStep joinTable = new SQLStep("JoinTables");
         joinTable.setSql(
                 " INSERT OVERWRITE TABLE section_category " +
-                " SELECT sections.id, sections.parent_id, sections.name, category.name " +
+                " SELECT sections.sessionNum, sections.parent_id, sections.name, category.name " +
                 " FROM sections JOIN category  " +
                 "      ON (sections.article_id = category.article_id)");
 
@@ -60,7 +60,7 @@ public class SQLExample2 {
                 " FROM section_category " +
                 " INSERT OVERWRITE TABLE child_section_category SELECT * WHERE section_category.parent_id IS NOT NULL " +
                 " INSERT OVERWRITE TABLE orphan_section_category SELECT * WHERE section_category.parent_id IS NULL " +
-                " INSERT OVERWRITE DIRECTORY '/user/I827779/section10/' SELECT * WHERE section_category.parent_id <= 10");
+                " INSERT OVERWRITE DIRECTORY '/user/hadoop/section10/' SELECT * WHERE section_category.parent_id <= 10");
 
         // The 3 table creation steps can run without dependency
         context.addStep(createJoinTable);

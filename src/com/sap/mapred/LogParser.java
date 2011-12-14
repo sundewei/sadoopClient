@@ -1,5 +1,6 @@
 package com.sap.mapred;
 
+import com.sap.demo.Utility;
 import com.sap.hadoop.conf.ConfigurationManager;
 import com.sap.hadoop.conf.IFileSystem;
 import com.sap.hadoop.task.ITask;
@@ -61,21 +62,10 @@ public class LogParser implements ITask {
             AccessData accessData = getAccessData(line);
             if (accessData != null && accessData.httpCode == 200) {
                 MAP_OUT_KEY.set(accessData.ip);
-                MAP_OUT_VALUE.set(accessData.timestamp.getTime() + "_" + getProductId(accessData.resource));
+                MAP_OUT_VALUE.set(accessData.timestamp.getTime() + "_" + Utility.getItemLookup(accessData.resource));
                 context.write(MAP_OUT_KEY, MAP_OUT_VALUE);
             }
         }
-    }
-
-    private static String getProductId(String line) {
-        int dpIdx = line.indexOf("/dp/");
-        String id = null;
-        if (line.endsWith("/")) {
-            id = line.substring(dpIdx + 4, line.length() - 1);
-        } else {
-            id = line.substring(dpIdx + 4, line.length());
-        }
-        return id;
     }
 
     /**
@@ -156,7 +146,7 @@ public class LogParser implements ITask {
 
     public Job getMapReduceJob() throws Exception {
         // Get a configuration from the Hadoop jars in the classpath at the server side
-        ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
+        ConfigurationManager cm = new ConfigurationManager("hadoop", "hadoop");
         Configuration configuration = cm.getConfiguration();
 
         // The output folder MUST NOT be created, Hadoop will do it automatically

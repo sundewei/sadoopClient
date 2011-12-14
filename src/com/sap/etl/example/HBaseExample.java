@@ -171,9 +171,9 @@ public class HBaseExample {
 
     private static void addInfo(HTable htable) throws Exception {
         List<Put> putList = new ArrayList<Put>();
-        List<String[]> publisherInfo = getCsvContent("c:\\data\\gamePublisher.csv");
-        List<String[]> releaseDateInfo = getCsvContent("c:\\data\\gameReleaseDate.csv");
-        List<String[]> attributes = getCsvContent("c:\\data\\gameAttributes.csv");
+        List<String[]> publisherInfo = getCsvContent("c:\\projects\\data\\gamePublisher.csv");
+        List<String[]> releaseDateInfo = getCsvContent("c:\\projects\\data\\gameReleaseDate.csv");
+        List<String[]> attributes = getCsvContent("c:\\data\\projects\\gameAttributes.csv");
         //String rowKeyCheck = null;
 
         for (String[] pubInfo: publisherInfo) {
@@ -240,7 +240,7 @@ public class HBaseExample {
     public static void exportGobject(HTable htable) throws Exception {
         Scan scan = new Scan();
         // Like the select statement
-        FileOutputStream out = new FileOutputStream("c:\\data\\exported_games.csv");
+        FileOutputStream out = new FileOutputStream("c:\\data\\projects\\exported_games.csv");
         ResultScanner scanner = htable.getScanner(scan);
         StringBuilder sb = new StringBuilder();
         for (Result result = scanner.next(); result != null; result = scanner.next()) {
