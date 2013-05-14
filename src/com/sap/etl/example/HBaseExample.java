@@ -10,26 +10,12 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -72,7 +58,7 @@ public class HBaseExample {
     private static List<Put> getPutList(Map<Long, GObject> gobMap) throws Exception {
         List<Put> puts = new ArrayList<Put>();
         Set<String> distIds = new HashSet<String>();
-        for (Map.Entry<Long, GObject> entry: gobMap.entrySet()) {
+        for (Map.Entry<Long, GObject> entry : gobMap.entrySet()) {
             GObject gob = entry.getValue();
             //String rowKey = getRowKeyV1(gob);
             String rowKey = getRowKeyV2(gob);
@@ -87,19 +73,19 @@ public class HBaseExample {
             }
             put.add(Bytes.toBytes("attributes"), Bytes.toBytes("name"), Bytes.toBytes(gob.getName()));
 
-            for (Map.Entry<String, String> nEntry: gob.getLocalizedNames().entrySet()) {
+            for (Map.Entry<String, String> nEntry : gob.getLocalizedNames().entrySet()) {
                 put.add(Bytes.toBytes("attributes"),
                         Bytes.toBytes(nEntry.getKey().toLowerCase().replace(" ", "_")),
                         Bytes.toBytes(nEntry.getValue()));
             }
 
-            for (Map.Entry<String, String> nEntry: gob.getAlias().entrySet()) {
+            for (Map.Entry<String, String> nEntry : gob.getAlias().entrySet()) {
                 put.add(Bytes.toBytes("attributes"),
                         Bytes.toBytes(nEntry.getKey().toLowerCase().replace(" ", "_")),
                         Bytes.toBytes(nEntry.getValue()));
             }
 
-            for (Map.Entry<String, String> nEntry: gob.getMiscNames().entrySet()) {
+            for (Map.Entry<String, String> nEntry : gob.getMiscNames().entrySet()) {
                 put.add(Bytes.toBytes("attributes"),
                         Bytes.toBytes(nEntry.getKey().toLowerCase().replace(" ", "_")),
                         Bytes.toBytes(nEntry.getValue()));
@@ -107,7 +93,7 @@ public class HBaseExample {
             int idx = 0;
             // add the attributes
             put.add(Bytes.toBytes("attributes"), Bytes.toBytes("platform_name"), Bytes.toBytes(gob.getPlatformName()));
-            for (String attribute: gob.getCollection()) {
+            for (String attribute : gob.getCollection()) {
                 put.add(Bytes.toBytes("attributes"), Bytes.toBytes(String.valueOf(idx)), Bytes.toBytes(attribute));
                 idx++;
             }
@@ -115,8 +101,8 @@ public class HBaseExample {
             distIds.add(rowKey);
         }
 
-        System.out.println("Found "+puts.size()+" games...");
-        System.out.println("Found "+distIds.size()+" dist ids...");
+        System.out.println("Found " + puts.size() + " games...");
+        System.out.println("Found " + distIds.size() + " dist ids...");
 
         return puts;
     }
@@ -139,7 +125,7 @@ public class HBaseExample {
     private static String getPadded(String from, String padChar, int length, boolean append) {
         StringBuilder sb = new StringBuilder(from);
         while (sb.length() < length) {
-            if(append) {
+            if (append) {
                 sb.append(padChar);
             } else {
                 sb.insert(0, padChar);
@@ -176,7 +162,7 @@ public class HBaseExample {
         List<String[]> attributes = getCsvContent("c:\\data\\projects\\gameAttributes.csv");
         //String rowKeyCheck = null;
 
-        for (String[] pubInfo: publisherInfo) {
+        for (String[] pubInfo : publisherInfo) {
             String id = pubInfo[0].trim();
             String rowKey = getPadded(id, "0", 10, false);
             Put put = new Put(Bytes.toBytes(rowKey));
@@ -186,7 +172,7 @@ public class HBaseExample {
             putList.add(put);
         }
 
-        for (String[] relDateInfo: releaseDateInfo) {
+        for (String[] relDateInfo : releaseDateInfo) {
             String id = relDateInfo[0].trim();
             String rowKey = getPadded(id, "0", 10, false);
             Put put = new Put(Bytes.toBytes(rowKey));
@@ -194,11 +180,11 @@ public class HBaseExample {
             putList.add(put);
         }
 
-        for (String[] att: attributes) {
+        for (String[] att : attributes) {
             String id = att[0].trim();
             String rowKey = getPadded(id, "0", 10, false);
             Put put = new Put(Bytes.toBytes(rowKey));
-            for (int i=1; i<att.length; i++) {
+            for (int i = 1; i < att.length; i++) {
                 String[] ats = att[i].split("=");
                 put.add(Bytes.toBytes("attributes"), Bytes.toBytes(ats[0].trim().toLowerCase().replace(" ", "_")), Bytes.toBytes(ats[1]));
             }
@@ -219,7 +205,7 @@ public class HBaseExample {
     private static List<String[]> getCsvContent(String filename) throws Exception {
         List<String> lines = IOUtils.readLines(new FileInputStream(filename));
         List<String[]> contents = new ArrayList<String[]>();
-        for (String line: lines) {
+        for (String line : lines) {
             contents.add(CSVUtils.parseLine(line));
         }
         return contents;
@@ -228,13 +214,11 @@ public class HBaseExample {
     public static void findGObject(HTable htable, long id) throws Exception {
         Get row = new Get(getPadded(String.valueOf(id), "0", 10, false).getBytes());
         Result result = htable.get(row);
-        System.out.println("result="+result);
+        System.out.println("result=" + result);
 
         List<KeyValue> keyValues = result.getColumn("attributes".getBytes(), "other_minimum_requirements".getBytes());
-        System.out.println("Bytes.toString(keyValue.getValue())="+Bytes.toString(keyValues.get(0).getValue()));
+        System.out.println("Bytes.toString(keyValue.getValue())=" + Bytes.toString(keyValues.get(0).getValue()));
     }
-
-
 
 
     public static void exportGobject(HTable htable) throws Exception {
@@ -247,7 +231,7 @@ public class HBaseExample {
             String rowKey = Bytes.toString(result.getRow());
             sb.append(rowKey).append(",");
             Map<byte[], byte[]> attsMap = result.getFamilyMap(Bytes.toBytes("attributes"));
-            for (Map.Entry<byte[], byte[]> entry: attsMap.entrySet()) {
+            for (Map.Entry<byte[], byte[]> entry : attsMap.entrySet()) {
                 String key = Bytes.toString(entry.getKey());
                 String val = null;
                 if ("gob_id".equals(key)) {
@@ -255,9 +239,9 @@ public class HBaseExample {
                 } else {
                     val = Bytes.toString(entry.getValue());
                 }
-                sb.append("\"").append(key).append("=").append(val.replace("=", "\\=").replace("\"","\\\"")).append("\",");
+                sb.append("\"").append(key).append("=").append(val.replace("=", "\\=").replace("\"", "\\\"")).append("\",");
             }
-            sb.deleteCharAt(sb.length()-1).append("\n");
+            sb.deleteCharAt(sb.length() - 1).append("\n");
             IOUtils.write(sb.toString(), out);
             sb = new StringBuilder();
 

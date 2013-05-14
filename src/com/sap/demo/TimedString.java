@@ -11,6 +11,14 @@ public class TimedString implements Comparable {
     public long ms;
     public String line;
 
+    public TimedString() {
+    }
+
+    public TimedString(long ms, String line) {
+        this.ms = ms;
+        this.line = line;
+    }
+
     public int compareTo(Object other) {
         TimedString otherTimedString = (TimedString) other;
         return this.ms - otherTimedString.ms > 0 ? 1 : -1;

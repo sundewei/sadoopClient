@@ -21,11 +21,11 @@ import java.sql.SQLException;
 public class AffinityRow implements DBWritable, Writable {
 
     public static final String[] FIELDS =
-            {"CALENDAR_DATE", "ITEM_LOOKUP", "AFFINITY_ITEM_LOOKUP", "AFFINITY_COUNT", "SESSION_COUNT"};
+            {"DATE_STRING", "ITEM_ASIN", "AFFINITY_ITEM_ASIN", "AFFINITY_COUNT", "SESSION_COUNT"};
 
-    public String calendarDate;
-    public String itemLookup;
-    public String affinityItemLookup;
+    public String dateString;
+    public String itemAsin;
+    public String affinityItemAsin;
     public int affinityCount;
     public int sessionCount;
 
@@ -36,29 +36,18 @@ public class AffinityRow implements DBWritable, Writable {
     }
 
     public void write(DataOutput out) throws IOException {
-        Text.writeString(out, calendarDate);   // "2006-05-23"
-        Text.writeString(out, itemLookup);
-        Text.writeString(out, affinityItemLookup);
+        Text.writeString(out, dateString);
+        Text.writeString(out, itemAsin);
+        Text.writeString(out, affinityItemAsin);
         out.writeInt(affinityCount);
         out.writeInt(sessionCount);
     }
 
     public void write(PreparedStatement stmt) throws SQLException {
-        stmt.setString(1, calendarDate);   // "2006-05-23"
-        stmt.setString(2, itemLookup);
-        stmt.setString(3, affinityItemLookup);
+        stmt.setString(1, dateString);   // "2006-05-23"
+        stmt.setString(2, itemAsin);
+        stmt.setString(3, affinityItemAsin);
         stmt.setInt(4, affinityCount);
         stmt.setInt(5, sessionCount);
-    }
-
-    @Override
-    public String toString() {
-        return "AffinityRow{" +
-                "calendarDate=" + calendarDate +
-                ", itemLookup='" + itemLookup + '\'' +
-                ", affinityItemLookup='" + affinityItemLookup + '\'' +
-                ", affinityCount=" + affinityCount +
-                ", sessionCount=" + sessionCount +
-                '}';
     }
 }

@@ -62,7 +62,7 @@ public class LogParser implements ITask {
             AccessData accessData = getAccessData(line);
             if (accessData != null && accessData.httpCode == 200) {
                 MAP_OUT_KEY.set(accessData.ip);
-                MAP_OUT_VALUE.set(accessData.timestamp.getTime() + "_" + Utility.getItemLookup(accessData.resource));
+                MAP_OUT_VALUE.set(accessData.timestamp.getTime() + "_" + Utility.getItemAsin(accessData.resource));
                 context.write(MAP_OUT_KEY, MAP_OUT_VALUE);
             }
         }

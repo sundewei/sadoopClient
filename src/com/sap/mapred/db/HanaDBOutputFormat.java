@@ -22,8 +22,7 @@ import java.sql.SQLException;
  * Time: 10:32 AM
  * To change this template use File | Settings | File Templates.
  */
-public class HanaDBOutputFormat<K extends DBWritable, V>
-        extends OutputFormat<K, V> {
+public class HanaDBOutputFormat<K extends DBWritable, V> extends OutputFormat<K, V> {
 
     private static final Log LOG = LogFactory.getLog(DBOutputFormat.class);
 
@@ -40,11 +39,13 @@ public class HanaDBOutputFormat<K extends DBWritable, V>
     /**
      * A RecordWriter that writes the reduce output to a SQL table
      */
-    public class DBRecordWriter
-            extends RecordWriter<K, V> {
+    public class DBRecordWriter extends RecordWriter<K, V> {
 
         private Connection connection;
         private PreparedStatement statement;
+        private int commitBatchCount = 1000;
+        private int batchCount = 0;
+        private boolean hasMoreBatch = false;
 
         public DBRecordWriter() throws SQLException {
         }
@@ -69,8 +70,10 @@ public class HanaDBOutputFormat<K extends DBWritable, V>
          */
         public void close(TaskAttemptContext context) throws IOException {
             try {
-                statement.executeBatch();
-                connection.commit();
+                if (hasMoreBatch) {
+                    statement.executeBatch();
+                    connection.commit();
+                }
             } catch (SQLException e) {
                 try {
                     connection.rollback();
@@ -95,6 +98,14 @@ public class HanaDBOutputFormat<K extends DBWritable, V>
             try {
                 key.write(statement);
                 statement.addBatch();
+                hasMoreBatch = true;
+                batchCount++;
+
+                if (batchCount % commitBatchCount == 0) {
+                    statement.executeBatch();
+                    hasMoreBatch = false;
+                    connection.commit();
+                }
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -135,7 +146,6 @@ public class HanaDBOutputFormat<K extends DBWritable, V>
             }
         }
         query.append(")");
-
         return query.toString();
     }
 
@@ -151,16 +161,15 @@ public class HanaDBOutputFormat<K extends DBWritable, V>
         if (fieldNames == null) {
             fieldNames = new String[dbConf.getOutputFieldCount()];
         }
-
         try {
             Connection connection = dbConf.getConnection();
             PreparedStatement statement = null;
-
-            statement = connection.prepareStatement(
-                    constructQuery(tableName, fieldNames));
+            statement = connection.prepareStatement(constructQuery(tableName, fieldNames));
             return new DBRecordWriter(connection, statement);
         } catch (Exception ex) {
-            throw new IOException(ex.getMessage());
+            IOException ioe = new IOException(ex);
+            ioe.setStackTrace(ex.getStackTrace());
+            throw ioe;
         }
     }
 

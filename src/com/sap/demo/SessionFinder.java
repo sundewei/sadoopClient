@@ -65,7 +65,7 @@ public class SessionFinder {
                     rr.endMs = session.timestamps.get(session.timestamps.size() - 1);
                     rr.requestedPage = session.itemLookups.get(i);
                     rr.sessionLengthMs = rr.endMs - rr.startMs;
-                    rr.itemLookup = Utility.getItemLookup(session.itemLookups.get(i));
+                    rr.itemLookup = Utility.getItemAsin(session.itemLookups.get(i));
                     rr.ipGeoNum = Utility.getIpGeoNum(rr.ip);
                     rr.sessionNum = rr.startMs + "_" + rr.ip;
                     context.write(rr, REDUCE_VALUE);
@@ -85,7 +85,7 @@ public class SessionFinder {
         public void map(LongWritable inKey, Text inValue, Context context)
                 throws IOException, InterruptedException {
             AccessEntry accessData = Utility.getAccessEntry(inValue.toString());
-            if (accessData != null && Utility.getItemLookup(accessData.getAttribute("resource")) != null) {
+            if (accessData != null && Utility.getItemAsin(accessData.getAttribute("resource")) != null) {
                 BUFFER.setLength(0);
                 MAP_OUT_KEY.set(accessData.getAttribute("ip"));
                 BUFFER.append(accessData.getAttribute("timestamp")).append(REDUCE_VALUE_DELIMITER).append(accessData.getAttribute("resource"));

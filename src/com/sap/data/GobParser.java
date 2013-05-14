@@ -1,15 +1,12 @@
 package com.sap.data;
 
-import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -34,7 +31,7 @@ public class GobParser {
         String name6 = null;
         String value6 = null;
         int count = 0;
-        for (String line: lines) {
+        for (String line : lines) {
             count++;
             // skip the first line
             if (!seeFirst) {

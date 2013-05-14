@@ -7,6 +7,8 @@ import org.apache.commons.csv.CSVUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -30,11 +32,72 @@ public class Utility {
     private static final Logger LOG = Logger.getLogger(Utility.class.getName());
     private static final DateFormat DATE_FORMAT = new SimpleDateFormat("[dd/MMM/yyyy:HH:mm:ss Z]");
     public static final DateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    public static final DateFormat SIMPLE_MONTH_FORMAT = new SimpleDateFormat("yyyy-MM");
+    public static final DateFormat YYYY_MM_DATE_FORMAT = new SimpleDateFormat("yyyy-MM");
+    public static final DateFormat MEDIUM_DATE_FORMAT = new SimpleDateFormat("MMMMM d, yyyy");
     public static final DecimalFormat MONEY_FORMATTER = new DecimalFormat("###.##");
     public static Map<String, String> STATE_REGION = new HashMap<String, String>();
     static String[] STATES;
     public static Map<String, String> STATE_ABBREVIATION = new HashMap<String, String>();
     public static Map<String, String> ABBREVIATION_STATE = new HashMap<String, String>();
+
+    public static void writeTransactions(Collection<PosRowGenerator.Transaction> txs, String filename) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int txid = 0;
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filename, true));
+        for (PosRowGenerator.Transaction tx : txs) {
+//System.out.println(tx);
+            String storeId = tx.store.id;
+            for (Map.Entry<Item, Integer> entry : tx.itemCountMap.entrySet()) {
+                sb.append("\"").append(String.valueOf(txid)).append("\",");
+                sb.append("\"").append(storeId).append("\",");
+                sb.append(entry.getKey().toCsvString()).append(",");
+                sb.append("\"").append(entry.getValue()).append("\",");
+                sb.append("\n");
+            }
+            txid++;
+            if (txid % 100 == 0) {
+                IOUtils.write(sb.toString(), writer);
+                sb = new StringBuilder();
+            }
+//System.out.println(sb.toString() + "\n-----------------\n");
+        }
+        if (sb.length() > 0) {
+            // The remaining lines
+            IOUtils.write(sb.toString(), writer);
+        }
+        writer.flush();
+        writer.close();
+    }
+
+    public static void close(PreparedStatement pstmt) throws SQLException {
+        if (pstmt != null) {
+            pstmt.close();
+        }
+    }
+
+    public static void close(ResultSet rs) throws SQLException {
+        if (rs != null) {
+            rs.close();
+        }
+    }
+
+    public static void close(Connection conn) throws Exception {
+        if (conn != null) {
+            conn.clearWarnings();
+            conn.close();
+        }
+    }
+
+    public static int getInt(PreparedStatement pstmt) throws Exception {
+        ResultSet rs = pstmt.executeQuery();
+        int count = 0;
+        while (rs.next()) {
+            count = rs.getInt(1);
+        }
+        close(rs);
+        return count;
+    }
 
     public static String getCsvString(String[] values, char delimiter) {
         StringBuilder sb = new StringBuilder();
@@ -47,7 +110,7 @@ public class Utility {
 
 
     public static Map<String, String> getStateAbbrFullMap() throws Exception {
-        List<String> states = FileUtils.readLines(new File("C:\\projects\\data\\state\\states.csv"));
+        List<String> states = FileUtils.readLines(new File(com.sap.demo.pos.Utility.BASE_FOLDER + "data/state/states.csv"));
         Map<String, String> abbState = new HashMap<String, String>();
         for (String state : states) {
             String[] ss = CSVUtils.parseLine(state);
@@ -204,7 +267,7 @@ public class Utility {
         Set<String> set = new HashSet<String>();
         while (line != null) {
             AccessEntry ae = getAccessEntry(line);
-            String pid = getItemLookup(ae.resource);
+            String pid = getItemAsin(ae.resource);
             if(pid != null) {
                 set.add(ae.resource.substring(0, ae.resource.indexOf("/", 2)));
                 if (ae.resource.substring(0, ae.resource.indexOf("/", 2)).equals("/dp")) {
@@ -253,7 +316,7 @@ public class Utility {
           profit_dollars double NOT NULL
         )
          */
-        String query = " INSERT INTO POS_FACT VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
+        String query = " INSERT INTO HADOOP.POS_FACT VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ";
         PreparedStatement stmt = conn.prepareStatement(query);
         int rowCount = 0;
         boolean started = false;
@@ -328,7 +391,7 @@ public class Utility {
     }
 
     public static Map<String, List<String>> getBrowserMap() throws Exception {
-        File folder = new File("C:\\projects\\data\\browsers");
+        File folder = new File(com.sap.demo.pos.Utility.BASE_FOLDER + "data/browsers");
         Map<String, List<String>> map = new HashMap<String, List<String>>();
         for (File file : folder.listFiles()) {
             String browserType = file.getName().replace(".txt", "");
@@ -418,6 +481,13 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
     public static void initOutputPath(IFileSystem fileSystem, String outPath) throws Exception {
         if (fileSystem.exists(outPath)) {
             fileSystem.deleteDirectory(outPath);
+        }
+    }
+
+    public static void initOutputPath(FileSystem fileSystem, String outPath) throws Exception {
+        Path path = new Path(outPath);
+        if (fileSystem.exists(path)) {
+            fileSystem.delete(path, true);
         }
     }
 
@@ -622,16 +692,20 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
     }
 
     public static String getCsvTable(ResultSet rs) throws SQLException {
+        return getCsvTable(rs, true, "\"");
+    }
+
+    public static String getCsvTable(ResultSet rs, boolean includeCmd, String quoteChar) throws SQLException {
         StringBuilder sb = new StringBuilder();
         ResultSetMetaData rsMetadata = rs.getMetaData();
         int columnCount = rsMetadata.getColumnCount();
         int rowCount = 0;
         while (rs.next()) {
-            if (rowCount == 0) {
+            if (includeCmd && rowCount == 0) {
                 for (int i = 0; i < columnCount; i++) {
-                    sb.append("\"");
+                    sb.append(quoteChar);
                     sb.append(rsMetadata.getColumnName(i + 1));
-                    sb.append("\"");
+                    sb.append(quoteChar);
                     if (i < columnCount - 1) {
                         sb.append(",");
                     }
@@ -639,20 +713,23 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
                 sb.append("\n");
             }
             for (int i = 0; i < columnCount; i++) {
-                sb.append("\"");
+                sb.append(quoteChar);
                 String val = rs.getString(i + 1);
                 if (val != null) {
                     sb.append(rs.getString(i + 1).replace("\"", "\\\""));
                 } else {
                     sb.append("null");
                 }
-                sb.append("\"");
+                sb.append(quoteChar);
                 if (i < columnCount - 1) {
                     sb.append(",");
                 }
             }
             sb.append("\n");
             rowCount++;
+            if (rowCount % 10000 == 0) {
+                System.out.println(rowCount);
+            }
         }
         return sb.toString();
     }
@@ -663,8 +740,8 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
         //return DriverManager.getConnection(url, "I827779", "Google6377");
 
 
-        String url = "jdbc:sap://llnpal056:35015/SYSTEM";
-        Connection conn = DriverManager.getConnection(url, "SYSTEM", "Hadoophana123");
+        String url = "jdbc:sap://lspal134:31015/HADOOP";
+        Connection conn = DriverManager.getConnection(url, "SYSTEM", "Hana1234");
         return conn;
     }
 
@@ -707,7 +784,7 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
     public static void generateItems() throws Exception {
         List<Item> items = getItems(null);
         BufferedWriter out = new BufferedWriter(new FileWriter("C:\\projects\\data\\sportmart\\items.csv"));
-        for (Item item: items) {
+        for (Item item : items) {
             out.write(item.toCsvString() + "\n");
         }
         out.close();
@@ -716,7 +793,7 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
     public static Collection<Item> getItems() throws Exception {
         List<String> lines = FileUtils.readLines(new File("C:\\projects\\data\\sportmart\\items.csv"));
         Set<Item> items = new HashSet<Item>();
-        for (String line: lines) {
+        for (String line : lines) {
             String[] values = CSVUtils.parseLine(line);
             Item item = new Item(Integer.parseInt(values[0]),
                     values[1], values[2],
@@ -729,7 +806,7 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
 
     public static Map<String, List<Item>> getCategoryItems(Collection<Item> items) {
         Map<String, List<Item>> map = new HashMap<String, List<Item>>();
-        for (Item item: items) {
+        for (Item item : items) {
             List<Item> collection = map.get(item.getCategory());
             if (collection == null) {
                 collection = new ArrayList<Item>();
@@ -742,7 +819,7 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
 
     public static Map<String, List<Item>> getSubCategoryItems(Collection<Item> items) {
         Map<String, List<Item>> map = new HashMap<String, List<Item>>();
-        for (Item item: items) {
+        for (Item item : items) {
             List<Item> collection = map.get(item.getSubCategory());
             if (collection == null) {
                 collection = new ArrayList<Item>();
@@ -820,8 +897,8 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
     }
 
     public static Map<String, Integer> getDateMap() throws Exception {
-        String query = "select id, \"YEAR\", month_of_year, day_of_month\n" +
-                "from date_dim";
+        String query = "select id, \"YYYY\", month_of_year, day_of_month\n" +
+                "from HADOOP.DATE_DIM";
         Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement(query);
         ResultSet rs = stmt.executeQuery();
@@ -864,9 +941,9 @@ ppp931.on.bellglobal.com - - [26/Apr/2000:00:16:12 -0400] "GET /download/windows
         return map;
     }
 
-    public static String getItemLookup(String line) {
-        String key = "productId=";
-        int dpIdx = line.indexOf("productId=");
+    public static String getItemAsin(String line) {
+        String key = "PPSID=";
+        int dpIdx = line.indexOf("PPSID=");
         int idEnd = line.indexOf("&", dpIdx + 1);
         if (idEnd < 0) {
             line.indexOf("\"", dpIdx + 1);
@@ -1093,13 +1170,13 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
                 String[] values = CSVUtils.parseLine(line);
                 String lineDateString = SIMPLE_DATE_FORMAT.format(new Date(DATE_FORMAT.parse(values[0]).getTime()));
                 if (lineDateString.equals(dateString)) {
-                    Integer itemId = Integer.parseInt(values[2]);
+                    Integer itemAsin = Integer.parseInt(values[2]);
                     Double qty = Double.parseDouble(values[3]);
-                    if (itemQty.containsKey(itemId.intValue())) {
-                        double existing = itemQty.get(itemId.intValue());
+                    if (itemQty.containsKey(itemAsin.intValue())) {
+                        double existing = itemQty.get(itemAsin.intValue());
                         qty += existing;
                     }
-                    itemQty.put(itemId.intValue(), qty);
+                    itemQty.put(itemAsin.intValue(), qty);
                 }
                 line = in.readLine();
             }
@@ -1161,8 +1238,8 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
     }
 
     public static Map<String, State> getStateMap() throws Exception {
-        String incomeFilaneme = "C:\\projects\\data\\state\\stateIncome.csv";
-        String populationFilaneme = "C:\\projects\\data\\state\\statePopulation.csv";
+        String incomeFilaneme = com.sap.demo.pos.Utility.BASE_FOLDER + "data/state/stateIncome.csv";
+        String populationFilaneme = com.sap.demo.pos.Utility.BASE_FOLDER + "data/state/statePopulation.csv";
 
         List<String> incomeLines = FileUtils.readLines(new File(incomeFilaneme));
         List<String> populationLines = FileUtils.readLines(new File(populationFilaneme));
@@ -1245,41 +1322,19 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
         }
     }
 
-    public static void main1(String[] arg) throws Exception {
-        String filename = "C:\\projects\\data\\sportmart\\storeItemQty\\PA.csv";
-        List<String> lines = FileUtils.readLines(new File(filename));
-        Collection<Item> items = Utility.getItems();
-        Map<String, Item> itemMap = Utility.getItemMap(items);
-        Map<String, Double> categoryQty = new HashMap<String, Double>();
-        Set<MapEntry> set = new TreeSet<MapEntry>();
-
-        for (String line: lines) {
-            String[] values = CSVUtils.parseLine(line);
-            Item item = itemMap.get(values[0]);
-            if (item != null) {
-                double qty = Double.parseDouble(values[1]);
-                if (categoryQty.containsKey(item.getCategory())) {
-                    qty += categoryQty.get(item.getCategory());
-                }
-                categoryQty.put(item.getCategory(), qty);
+    public static void main(String[] arg) throws Exception {
+        List<String> lines = FileUtils.readLines(new File("C:\\projects\\data\\posDemo\\accessLogs\\access_2008-01-01.log"));
+        for (String line : lines) {
+            AccessEntry accessEntry = getAccessEntry(line);
+            if (accessEntry != null) {
+                System.out.println(accessEntry);
             }
-        }
-
-        for (Map.Entry<String, Double> entry: categoryQty.entrySet()) {
-            MapEntry me = new MapEntry();
-            me.category = entry.getKey();
-            me.qty = entry.getValue();
-            set.add(me);
-        }
-
-        for (MapEntry me: set) {
-            System.out.println(me.category + " : " + me.qty);
         }
     }
 
-    public static void main(String[] arg) throws Exception {
+    public static void populateCalendar() throws Exception {
         Calendar startCalendar = Calendar.getInstance();
-        startCalendar.set(Calendar.YEAR, 2006);
+        startCalendar.set(Calendar.YEAR, 1970);
         startCalendar.set(Calendar.MONTH, Calendar.JANUARY);
         startCalendar.set(Calendar.DAY_OF_MONTH, 1);
         startCalendar.set(Calendar.HOUR_OF_DAY, 0);
@@ -1290,7 +1345,7 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
         Connection conn = Utility.getConnection();
         PreparedStatement stmt = conn.prepareStatement("INSERT INTO DIM_CALENDAR_DATE VALUES (?, ?, ?)");
         int count = 0;
-        while (count < 3000) {
+        while (count < 365 * 100) {
             stmt.setString(1, SIMPLE_DATE_FORMAT.format(startCalendar.getTime()));
             stmt.setInt(2, Integer.parseInt(SIMPLE_DATE_FORMAT.format(startCalendar.getTime()).substring(0, 4)));
             stmt.setInt(3, Integer.parseInt(SIMPLE_DATE_FORMAT.format(startCalendar.getTime()).substring(5, 7)));
@@ -1303,15 +1358,13 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
 
     }
 
-
-
     public static void removeEmptyLines() throws Exception {
         String foldername = "C:\\projects\\data\\itemQtyByState\\";
         File folder = new File(foldername);
-        for (File file: folder.listFiles()) {
+        for (File file : folder.listFiles()) {
             List<String> lines = FileUtils.readLines(file);
             List<String> newLines = new LinkedList<String>();
-            for (String line: lines) {
+            for (String line : lines) {
                 if (line.length() > 0) {
                     newLines.add(line);
                 }
@@ -1323,6 +1376,45 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
             File tempFile = new File(tempName);
             tempFile.renameTo(new File(originalName));
         }
+    }
+
+
+    /*
+    public static long getViewingStartMs(Calendar indexCalendar, String nowDateString, int hour) throws ParseException {
+        long nowMs = indexCalendar.getTime().getTime() + hour * 3600000 + nextLong(3550000);
+        long possibleMs = getFuzzyNumber(nowMs, 3 * 60 * 1000);
+        while (!nowDateString.equals(SIMPLE_DATE_FORMAT.format(new Timestamp(possibleMs)))) {
+//System.out.println("nowDateString="+nowDateString+", Utility.SIMPLE_DATE_FORMAT.format(new Timestamp(possibleMs))="+Utility.SIMPLE_DATE_FORMAT.format(new Timestamp(possibleMs)));
+            nowMs = indexCalendar.getTime().getTime() + hour * 3600000 + nextLong(3550000);
+            possibleMs = getFuzzyNumber(nowMs, 3 * 60 * 1000);
+        }
+        return possibleMs;
+    }
+    */
+
+    public static long getViewingStartMs(Calendar calendar, int hour) throws ParseException {
+        Calendar clearedCalendar = clearMinutes(calendar);
+//System.out.println("111, " + clearedCalendar.getTime().toLocaleString());
+        clearedCalendar.set(Calendar.HOUR, hour);
+        long startMs = clearedCalendar.getTime().getTime();
+//System.out.println("222, " + clearedCalendar.getTime().toLocaleString());
+        clearedCalendar.add(Calendar.HOUR, 1);
+        long endMs = clearedCalendar.getTime().getTime();
+//System.out.println("333, " + clearedCalendar.getTime().toLocaleString());
+        return startMs + nextLong(endMs - startMs);
+    }
+
+    public static long getNextMsWithin(long baseMs, long lengthMs) {
+        return baseMs + nextLong(lengthMs);
+    }
+
+    private static Calendar clearMinutes(Calendar calendar) {
+        Calendar clonedCalendar = (Calendar) calendar.clone();
+        clonedCalendar.set(Calendar.HOUR_OF_DAY, 0);
+        clonedCalendar.clear(Calendar.MINUTE);
+        clonedCalendar.clear(Calendar.SECOND);
+        clonedCalendar.clear(Calendar.MILLISECOND);
+        return clonedCalendar;
     }
 
     static {
@@ -1473,7 +1565,7 @@ System.out.println(index + "/" + stores.size() + ", working on " + store.getNum(
         public double qty;
 
         public int compareTo(MapEntry mapEntry) {
-            return (qty - mapEntry.qty < 0) ? 1 : -1 ;
+            return (qty - mapEntry.qty < 0) ? 1 : -1;
         }
     }
 }

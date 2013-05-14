@@ -1,14 +1,12 @@
 package com.sap.demo;
 
-import com.sap.hadoop.conf.ConfigurationManager;
-import com.sap.hadoop.conf.IFileSystem;
 import com.sap.hadoop.task.ITask;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.db.DBConfiguration;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
@@ -42,7 +40,7 @@ public class AffinityLogParserStep1 implements ITask {
      * The reduce class
      */
     public static class Step1Reducer extends org.apache.hadoop.mapreduce.Reducer<Text, Text, Text, Text> {
-        private static final Text EMPTY_STRING_KEY = new Text("");
+        private static final Text EMPTY_STRING_VALUE = new Text("");
         private static final Text ITEM_LOOKUP_CSV = new Text();
         private TreeMap<Long, String> timedItemLookupMap = new TreeMap<Long, String>();
         private int SESSION_LENGTH_MIN = -1;
@@ -56,24 +54,28 @@ public class AffinityLogParserStep1 implements ITask {
         public void reduce(Text inKey, Iterable<Text> inValues, Context context)
                 throws IOException, InterruptedException {
             init(context);
+            // Create a TreeMap so we can sort by the key
             timedItemLookupMap = new TreeMap<Long, String>();
             Iterator<Text> inValueIt = inValues.iterator();
+            // Now store the (timestamp, productId) into the TreeMap so they can be sorted by the time
             while (inValueIt.hasNext()) {
                 String[] values = inValueIt.next().toString().split(REDUCE_VALUE_DELIMITER);
                 timedItemLookupMap.put(Long.parseLong(values[0]), values[1]);
             }
 
+            // Find the sessions in the TreeMap
             List<Session> sessions = Utility.getSessions(timedItemLookupMap, SESSION_LENGTH_MIN);
+            // For each session, store the productIds as CSV and append the "starting timestamp" as the last value
             for (Session session : sessions) {
                 if (session.timestamps.size() > 0) {
                     StringBuilder sb = new StringBuilder();
-                    for (String itemLookup: session.itemLookups) {
+                    for (String itemLookup : session.itemLookups) {
                         sb.append(itemLookup).append(",");
                     }
                     // Set the first timestamp at the end
                     sb.append(Utility.SIMPLE_DATE_FORMAT.format(session.timestamps.get(0)));
                     ITEM_LOOKUP_CSV.set(sb.toString());
-                    context.write(EMPTY_STRING_KEY, ITEM_LOOKUP_CSV);
+                    context.write(ITEM_LOOKUP_CSV, EMPTY_STRING_VALUE);
                 }
             }
         }
@@ -91,10 +93,13 @@ public class AffinityLogParserStep1 implements ITask {
                 throws IOException, InterruptedException {
             AccessEntry accessData = Utility.getAccessEntry(inValue.toString());
             if (accessData != null) {
-                String itemLookup = Utility.getItemLookup(accessData.getAttribute("resource"));
+                String itemLookup = Utility.getItemAsin(accessData.getAttribute("resource"));
                 if (itemLookup != null) {
                     BUFFER.setLength(0);
+                    // The map output key is the ip
                     MAP_OUT_KEY.set(accessData.getAttribute("ip"));
+                    // The map output value is timestamp_productId
+                    // itemLookup is the productId
                     BUFFER.append(accessData.getAttribute("timestamp")).append(REDUCE_VALUE_DELIMITER).append(itemLookup);
                     MAP_OUT_VALUE.set(BUFFER.toString());
                     context.write(MAP_OUT_KEY, MAP_OUT_VALUE);
@@ -104,18 +109,20 @@ public class AffinityLogParserStep1 implements ITask {
     }
 
     public Job getMapReduceJob() throws Exception {
-        final ConfigurationManager configurationManager = new ConfigurationManager("hadoop", "hadoop");
-        final Configuration conf = configurationManager.getConfiguration();
+        //final ConfigurationManager configurationManager = new ConfigurationManager("i040723", "welcome");
+        //final Configuration conf = configurationManager.getConfiguration();
+        final Configuration conf = new Configuration();
+        conf.set("fs.default.name", "hdfs://localhost:9000");
+        conf.set("mapred.job.tracker", "localhost:9001");
 
         Job job = new Job(conf, "AffinityLogParserStep1 for " + INPUT_PATH);
 
         conf.setInt("SESSION_LENGTH_MIN", 30);
 
         OUTPUT_PATH = INPUT_PATH + "sessionItems/";
-        Utility.initOutputPath(configurationManager.getFileSystem(), OUTPUT_PATH);
+        FileSystem fileSystem = FileSystem.newInstance(conf);
 
-        FileInputFormat.addInputPath(job, new Path(INPUT_PATH));
-        FileOutputFormat.setOutputPath(job, new Path(OUTPUT_PATH));
+        Utility.initOutputPath(fileSystem, OUTPUT_PATH);
 
         job.setJarByClass(AffinityLogParserStep1.class);
 

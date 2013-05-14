@@ -39,11 +39,13 @@ public class HanaDBOutputFormat<K extends DBWritable, V> extends OutputFormat<K,
     /**
      * A RecordWriter that writes the reduce output to a SQL table
      */
-    public class DBRecordWriter
-            extends RecordWriter<K, V> {
+    public class DBRecordWriter extends RecordWriter<K, V> {
 
         private Connection connection;
         private PreparedStatement statement;
+        private int commitBatchCount = 1000;
+        private int batchCount = 0;
+        private boolean hasMoreBatch = false;
 
         public DBRecordWriter() throws SQLException {
         }
@@ -68,8 +70,10 @@ public class HanaDBOutputFormat<K extends DBWritable, V> extends OutputFormat<K,
          */
         public void close(TaskAttemptContext context) throws IOException {
             try {
-                statement.executeBatch();
-                connection.commit();
+                if (hasMoreBatch) {
+                    statement.executeBatch();
+                    connection.commit();
+                }
             } catch (SQLException e) {
                 try {
                     connection.rollback();
@@ -94,6 +98,14 @@ public class HanaDBOutputFormat<K extends DBWritable, V> extends OutputFormat<K,
             try {
                 key.write(statement);
                 statement.addBatch();
+                hasMoreBatch = true;
+                batchCount++;
+
+                if (batchCount % commitBatchCount == 0) {
+                    statement.executeBatch();
+                    hasMoreBatch = false;
+                    connection.commit();
+                }
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -134,7 +146,7 @@ public class HanaDBOutputFormat<K extends DBWritable, V> extends OutputFormat<K,
             }
         }
         query.append(")");
-
+        System.out.println("\n\n\n\n\nquery=\n" + query.toString());
         return query.toString();
     }
 
@@ -144,22 +156,27 @@ public class HanaDBOutputFormat<K extends DBWritable, V> extends OutputFormat<K,
     public RecordWriter<K, V> getRecordWriter(TaskAttemptContext context)
             throws IOException {
         DBConfiguration dbConf = new DBConfiguration(context.getConfiguration());
+        System.out.println("getRecordWriter 111");
         String tableName = dbConf.getOutputTableName();
+        System.out.println("getRecordWriter 222, tableName=" + tableName);
         String[] fieldNames = dbConf.getOutputFieldNames();
+        System.out.println("getRecordWriter 333, fieldNames[0] = " + fieldNames[0]);
 
         if (fieldNames == null) {
             fieldNames = new String[dbConf.getOutputFieldCount()];
         }
-
+        System.out.println("getRecordWriter 444, fieldNames[0] = " + fieldNames[0]);
         try {
             Connection connection = dbConf.getConnection();
+            System.out.println("555, connection=" + connection);
             PreparedStatement statement = null;
-
-            statement = connection.prepareStatement(
-                    constructQuery(tableName, fieldNames));
+            statement = connection.prepareStatement(constructQuery(tableName, fieldNames));
+            System.out.println("666, statement=" + statement);
             return new DBRecordWriter(connection, statement);
         } catch (Exception ex) {
-            throw new IOException(ex.getMessage());
+            IOException ioe = new IOException(ex);
+            ioe.setStackTrace(ex.getStackTrace());
+            throw ioe;
         }
     }
 

@@ -15,6 +15,11 @@ public class Bag {
     private long total = -1;
 
     public void addBalls(String ballName, long amount) {
+        if (balls.get(ballName) != null) {
+            // Make sure adding amount to existing ball increase the amount instead of overwriting
+            long existingAmount = balls.get(ballName);
+            amount += existingAmount;
+        }
         balls.put(ballName, amount);
     }
 

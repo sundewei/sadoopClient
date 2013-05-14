@@ -14,12 +14,12 @@ public class AffinityLogParser {
     public static void main(String[] arg) throws Exception {
         AffinityLogParserStep1 step1 = new AffinityLogParserStep1(arg[0]);
         Job step1Job = step1.getMapReduceJob();
-
+//step1Job.waitForCompletion(true);
         AffinityLogParserStep2 step2 = new AffinityLogParserStep2(step1.getOutputPath());
         Job step2Job = step2.getMapReduceJob();
-
         if (step1Job.waitForCompletion(true)) {
             step2Job.waitForCompletion(false);
         }
+
     }
 }

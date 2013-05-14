@@ -1,12 +1,13 @@
 package com.sap.demo;
 
 import com.sap.demo.dao.*;
+import com.sap.hadoop.conf.ConfigurationManager;
+import com.sap.hadoop.conf.IFileSystem;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.sql.Timestamp;
-import java.text.ParseException;
 import java.util.*;
 
 /**
@@ -28,21 +29,22 @@ public class SportsmartAccessLogGenerator {
         List<CssUrl> cssUrls = Utility.getCssUrls("C:\\projects\\data\\sportmart\\urls\\cssUrls.csv");
         List<ImageUrl> imageUrls = Utility.getImageUrls("C:\\projects\\data\\sportmart\\urls\\imageUrls.csv");
         List<JsUrl> jsUrls = Utility.getJsUrls("C:\\projects\\data\\sportmart\\urls\\jsUrls.csv");
-
-System.out.println("Getting browser map");
+        ConfigurationManager cm = new ConfigurationManager("hadoop", "hadoop");
+        IFileSystem fileSystem = cm.getFileSystem();
+        System.out.println("Getting browser map");
         Map<String, List<String>> browserMap = Utility.getBrowserMap();
-System.out.println("Getting stateItemSoldMap");
+        System.out.println("Getting stateItemSoldMap");
         Map<String, Map<Integer, Double>> stateItemSoldMap = Utility.getStateItemSoldMap();
-System.out.println("Getting dateItemSoldMap");
+        System.out.println("Getting dateItemSoldMap");
         Map<String, Map<Integer, Double>> dateItemSoldMap = Utility.getDateItemSoldMap();
-System.out.println("Getting getItems");
+        System.out.println("Getting getItems");
         Collection<Item> items = Utility.getItems();
-System.out.println("Getting categoryItems");
+        System.out.println("Getting categoryItems");
         Map<String, List<Item>> categoryItems = Utility.getCategoryItems(items);
         //Map<String, List<Item>> subCategoryItems = Utility.getCategoryItems(items);
-System.out.println("Getting getItemMap");
+        System.out.println("Getting getItemMap");
         Map<String, Item> itemMap = Utility.getItemMap(items);
-System.out.println("Getting stateIpRangeMap");
+        System.out.println("Getting stateIpRangeMap");
         Map<String, TreeMap<Long, Long>> stateIpRangeMap = IpGenerator.getAllStateRangeMap();
 
         // 80K
@@ -75,12 +77,12 @@ System.out.println("Getting stateIpRangeMap");
         endCalendar.set(Calendar.SECOND, 0);
         endCalendar.set(Calendar.MILLISECOND, 0);
 
-        Calendar indexCalendar = (Calendar)startCalendar.clone();
+        Calendar indexCalendar = (Calendar) startCalendar.clone();
 
         while (indexCalendar.before(endCalendar)) {
             TreeSet<TimedString> timedStrings = new TreeSet<TimedString>();
             String nowDateString = Utility.SIMPLE_DATE_FORMAT.format(indexCalendar.getTime());
-            File logFile = new File("F:\\sportmart\\logs\\large_access_" + nowDateString + ".log");
+            File logFile = new File("C:\\projects\\data\\sportmart\\logs\\large_access_" + nowDateString + ".log");
             String yyyy = nowDateString.substring(0, 4);
             if (yyyy.equals("2007")) {
                 dailyBaseReqCount = dailyBaseReqCount2007;
@@ -110,7 +112,7 @@ System.out.println("Getting stateIpRangeMap");
             }
 
             for (int hour = 0; hour < 24; hour++) {
-System.out.println(nowDateString + ", Hour = " + hour );
+                System.out.println(nowDateString + ", Hour = " + hour);
                 long hourlyReqCount = (long) (HOUR_LOG_VOLUME.get(hour) * Utility.getFuzzyNumber(dailyBaseReqCount / 24));
                 int reqIndex = 0;
 
@@ -124,7 +126,7 @@ System.out.println(nowDateString + ", Hour = " + hour );
                     String ip = IpGenerator.getIp(ipRangeMap);
                     List<String> userAgents = browserMap.get(browserBag.drawBall());
                     String userAgent = userAgents.get(Utility.RANDOM.nextInt(userAgents.size()));
-                    long viewingStartMs = getViewingStartMs(indexCalendar, nowDateString, hour);
+                    long viewingStartMs = Utility.getViewingStartMs(indexCalendar, hour);
 
                     for (int i = 0; i < viewedPageCount; i++) {
                         int itemLookup = Integer.parseInt(todayItemBag.drawBall());
@@ -138,42 +140,42 @@ System.out.println(nowDateString + ", Hour = " + hour );
 
                         // Add SOCCER trend items
                         Set<Item> trendItems = getTrendItems(categoryItems, item, yyyy, "SOCCER", new int[]{300, 612, 972});
-                        for (Item trendItem: trendItems) {
+                        for (Item trendItem : trendItems) {
                             TimedString[] tss = getTimedStrings(nowDateString, trendItem.getItemLookup(), ip, viewingStartMs, userAgent, cssUrls, imageUrls, jsUrls);
                             timedStrings.addAll(Arrays.asList(tss));
                         }
 
                         // Add BICYCLE trend items
                         trendItems = getTrendItems(categoryItems, item, yyyy, "BICYCLE", new int[]{200, 430, 590});
-                        for (Item trendItem: trendItems) {
+                        for (Item trendItem : trendItems) {
                             TimedString[] tss = getTimedStrings(nowDateString, trendItem.getItemLookup(), ip, viewingStartMs, userAgent, cssUrls, imageUrls, jsUrls);
                             timedStrings.addAll(Arrays.asList(tss));
                         }
 
                         // Add SKATEBOARD trend items
                         trendItems = getTrendItems(categoryItems, item, yyyy, "SKATEBOARD", new int[]{180, 320, 420});
-                        for (Item trendItem: trendItems) {
+                        for (Item trendItem : trendItems) {
                             TimedString[] tss = getTimedStrings(nowDateString, trendItem.getItemLookup(), ip, viewingStartMs, userAgent, cssUrls, imageUrls, jsUrls);
                             timedStrings.addAll(Arrays.asList(tss));
                         }
 
                         // Add FOOTBALL trend items
                         trendItems = getTrendItems(categoryItems, item, yyyy, "FOOTBALL", new int[]{175, 250, 375});
-                        for (Item trendItem: trendItems) {
+                        for (Item trendItem : trendItems) {
                             TimedString[] tss = getTimedStrings(nowDateString, trendItem.getItemLookup(), ip, viewingStartMs, userAgent, cssUrls, imageUrls, jsUrls);
                             timedStrings.addAll(Arrays.asList(tss));
                         }
 
                         // Add GOLF trend items
                         trendItems = getTrendItems(categoryItems, item, yyyy, "GOLF", new int[]{120, 195, 230});
-                        for (Item trendItem: trendItems) {
+                        for (Item trendItem : trendItems) {
                             TimedString[] tss = getTimedStrings(nowDateString, trendItem.getItemLookup(), ip, viewingStartMs, userAgent, cssUrls, imageUrls, jsUrls);
                             timedStrings.addAll(Arrays.asList(tss));
                         }
 
                         // Add CAMPING trend items
                         trendItems = getTrendItems(categoryItems, item, yyyy, "CAMPING", new int[]{400, 720, 875});
-                        for (Item trendItem: trendItems) {
+                        for (Item trendItem : trendItems) {
                             TimedString[] tss = getTimedStrings(nowDateString, trendItem.getItemLookup(), ip, viewingStartMs, userAgent, cssUrls, imageUrls, jsUrls);
                             timedStrings.addAll(Arrays.asList(tss));
                         }
@@ -183,7 +185,7 @@ System.out.println(nowDateString + ", Hour = " + hour );
 
                         viewingStartMs = viewingStartMs + Utility.nextLong(6 * 60 * 1000);
                         while (!Utility.SIMPLE_DATE_FORMAT.format(new Timestamp(viewingStartMs)).equals(nowDateString)) {
-                            viewingStartMs = getViewingStartMs(indexCalendar, nowDateString, hour);
+                            viewingStartMs = Utility.getViewingStartMs(indexCalendar, hour);
                         }
                     }
                     reqIndex++;
@@ -196,23 +198,20 @@ System.out.println(nowDateString + ", Hour = " + hour );
                 out.write("\n");
             }
             out.close();
-
+            String hdfsFolder = cm.getRemoteFolder() + "sportmart/accessLogs/" + Utility.YYYY_MM_DATE_FORMAT.format(indexCalendar) + "/";
+            if (!fileSystem.exists(hdfsFolder)) {
+                System.out.println("Creating HDFS folder: " + hdfsFolder);
+                fileSystem.mkdirs(hdfsFolder);
+            }
+            String hdfsFilename = hdfsFolder + logFile.getName();
+            System.out.println("Begin uploading to HDFS: " + hdfsFilename);
+            fileSystem.uploadFromLocalFile(logFile.getAbsolutePath(), hdfsFilename);
+            System.out.println("Done uploading to HDFS: " + hdfsFilename);
             indexCalendar.add(Calendar.DATE, 1);
             todayStateBag = null;
             todayItemBag = null;
         }
         //*/
-    }
-
-    private static long getViewingStartMs(Calendar indexCalendar, String nowDateString, int hour) throws ParseException {
-        long nowMs = indexCalendar.getTime().getTime() + hour * 3600000 + Utility.nextLong(3550000);
-        long possibleMs = Utility.getFuzzyNumber(nowMs, 3 * 60 * 1000);
-        while (!nowDateString.equals(Utility.SIMPLE_DATE_FORMAT.format(new Timestamp(possibleMs)))) {
-//System.out.println("nowDateString="+nowDateString+", Utility.SIMPLE_DATE_FORMAT.format(new Timestamp(possibleMs))="+Utility.SIMPLE_DATE_FORMAT.format(new Timestamp(possibleMs)));
-            nowMs = indexCalendar.getTime().getTime() + hour * 3600000 + Utility.nextLong(3550000);
-            possibleMs = Utility.getFuzzyNumber(nowMs, 3 * 60 * 1000);
-        }
-        return possibleMs;
     }
 
     private static Set<Item> getTrendItems(Map<String, List<Item>> categoryItems, Item item, String yyyy, String catName, int[] nums) {
@@ -244,7 +243,7 @@ System.out.println(nowDateString + ", Hour = " + hour );
         Item picked = source.get(Utility.RANDOM.nextInt(source.size()));
         while (true) {
             boolean found = true;
-            for (Item excludeItem: exclude) {
+            for (Item excludeItem : exclude) {
                 if (picked.getItemLookup() == excludeItem.getItemLookup()) {
                     found = false;
                 }
@@ -340,16 +339,6 @@ System.out.println(nowDateString + ", Hour = " + hour );
             }
         }
         return todayStateBag;
-    }
-
-    private static Header getHeader(int itemLookup) {
-        Header header = new Header();
-        header.url = "http://www.sportsauthority.com/product/index.jsp?productId=" + itemLookup + "&parentPage=family";
-        header.resource = "/product/index.jsp?productId=" + itemLookup + "&parentPage=family";
-        header.method = "GET";
-        header.httpStatusCode = 200;
-        header.http = "HTTP/1.1";
-        return header;
     }
 
     private static Header getHeader(int itemLookup, String otherUrl, String userAgent) {
@@ -468,5 +457,15 @@ System.out.println(nowDateString + ", Hour = " + hour );
         REGION_ADJ_FACTORS.put("Midwest", 1.08D);
         REGION_ADJ_FACTORS.put("South", 1.07D);
         REGION_ADJ_FACTORS.put("West", 1.17D);
+    }
+
+    public static Header getHeader(int itemLookup) {
+        Header header = new Header();
+        header.url = "http://www.sportsauthority.com/product/index.jsp?productId=" + itemLookup + "&parentPage=family";
+        header.resource = "/product/index.jsp?productId=" + itemLookup + "&parentPage=family";
+        header.method = "GET";
+        header.httpStatusCode = 200;
+        header.http = "HTTP/1.1";
+        return header;
     }
 }

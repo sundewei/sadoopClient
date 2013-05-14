@@ -1,15 +1,15 @@
 package com.sap.data;
 
 
-
 import org.apache.commons.csv.CSVUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * Created by IntelliJ IDEA.
@@ -37,14 +37,14 @@ public class SandBox {
         List<String> lines = FileUtils.readLines(new File(file));
         int lineCount = 0;
         boolean doneBatch = false;
-System.out.println("query=\n"+query);
-        for (String line: lines) {
+        System.out.println("query=\n" + query);
+        for (String line : lines) {
             if (lineCount > 0) {
                 String[] columns = CSVUtils.parseLine(line);
-                for (int i=0; i<columns.length; i++) {
+                for (int i = 0; i < columns.length; i++) {
 //System.out.println((i+1) + " = " + columns[i]);
                     if (i < 4) {
-                        stmt.setString(i+1, columns[i]);
+                        stmt.setString(i + 1, columns[i]);
                     } else {
                         int value = 0;
                         if (columns[i] == null || columns[i].equals("")) {
@@ -52,7 +52,7 @@ System.out.println("query=\n"+query);
                         } else {
                             value = Integer.parseInt(columns[0]);
                         }
-                        stmt.setInt(i+1, value);
+                        stmt.setInt(i + 1, value);
                     }
                 }
             }
@@ -92,7 +92,7 @@ System.out.println("query=\n"+query);
                 " select * from CITY_LOCATIONS ";
         PreparedStatement stmt = conn.prepareStatement(query);
         ResultSet rs = stmt.executeQuery();
-        while(rs.next()) {
+        while (rs.next()) {
             System.out.println(rs.getInt(1));
         }
         rs.close();

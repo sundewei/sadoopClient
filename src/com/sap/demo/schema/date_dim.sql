@@ -29,7 +29,7 @@ quarter_of_year = QUARTER(date),
 year            = DATE_FORMAT( date, "%Y" );
 
 
-INSERT INTO DATE_DIM (date_id, date)
+INSERT INTO DATE_DIM (date_id, caendar_date)
 SELECT number, DATE_ADD( '2008-01-01', INTERVAL number DAY )
 FROM numbers
 WHERE DATE_ADD( '2008-01-01', INTERVAL number DAY ) BETWEEN '2008-01-01' AND '2011-12-31'

@@ -8,7 +8,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
@@ -24,6 +23,7 @@ public class AccessLogGenerator {
     public static List<String[]> pageList = new ArrayList<String[]>();
     static Random randomGenerator = new Random();
     static DateFormat df = new SimpleDateFormat("[dd/MMM/yyyy:HH:mm:ss Z]");
+
     static {
         ips[0] = "10.48.58.42";
         ips[1] = "10.48.101.113";
@@ -149,9 +149,9 @@ public class AccessLogGenerator {
     }
 
     public static void main(String[] args) throws Exception {
-        for (int intDay=1; intDay<=31; intDay++) {
+        for (int intDay = 1; intDay <= 31; intDay++) {
             String day = getPaddedNumberString(intDay, 2, "0");
-            FileOutputStream out = new FileOutputStream("c:\\data\\newLogs\\localhost_access_log.2011-08-"+day+".txt", true);
+            FileOutputStream out = new FileOutputStream("c:\\data\\newLogs\\localhost_access_log.2011-08-" + day + ".txt", true);
             int pageCount = 0;
             long startMs = 1312182000812l + 86400000l * (intDay - 1);
             long endMs = startMs + 86400000l - 20l;
@@ -166,7 +166,7 @@ public class AccessLogGenerator {
                 int pageIndex = randomGenerator.nextInt(pageList.size());
                 nowIp = ips[randomGenerator.nextInt(10)];
                 List<MsLine> msLines = getLines(nowIp, nowMs, pageList.get(pageIndex));
-                for (MsLine msLine: msLines) {
+                for (MsLine msLine : msLines) {
                     sortedMsLines.put(msLine.ms, msLine.line);
                 }
                 if (oldIp != null && oldIp.equals(nowIp)) {
@@ -174,13 +174,13 @@ public class AccessLogGenerator {
                 } else {
                     nowMs += randomGenerator.nextInt(250);
                 }
-                pageCount ++;
+                pageCount++;
                 if (pageCount % 1000 == 0) {
                     System.out.println(new Timestamp(nowMs));
                 }
                 oldIp = nowIp;
             }
-            for (String line: sortedMsLines.values()) {
+            for (String line : sortedMsLines.values()) {
                 IOUtils.write(line, out);
             }
             out.close();
@@ -192,7 +192,7 @@ public class AccessLogGenerator {
 
         List<MsLine> outLines = new ArrayList<MsLine>();
         StringBuilder sb = null;
-        for (String line: lines) {
+        for (String line : lines) {
             if (randomGenerator.nextInt(100) >= 75) {
                 sb = new StringBuilder();
                 sb.append(ip).append(" - - ");

@@ -20,14 +20,14 @@ public class MysqlInserter {
         Class.forName("com.mysql.jdbc.Driver").newInstance();
         String url = "jdbc:mysql://hadoop01:3306/default";
         //Connection conn = DriverManager.getConnection(url, "SYSTEM", "manager");
-        Connection conn = DriverManager.getConnection(url,"visitor", "hadoopsap");
+        Connection conn = DriverManager.getConnection(url, "visitor", "hadoopsap");
         PreparedStatement stmt = conn.prepareStatement(" INSERT INTO category_members VALUES (?, ?) ");
 
         FileInputStream in = new FileInputStream("C:\\projects\\freebase-wex-2011-04-30\\freebase-wex-2011-04-30-category_members.tsv");
         List<String> lines = IOUtils.readLines(in);
         int count = 0;
         boolean added = false;
-        for (String line: lines) {
+        for (String line : lines) {
             String[] columns = line.split("\\t");
             if (columns.length == 2) {
                 stmt.setString(1, columns[0]);
@@ -37,13 +37,13 @@ public class MysqlInserter {
                 count++;
                 if (count % 1000000 == 0) {
                     stmt.executeBatch();
-System.out.println("Adding " + count + "rows");
+                    System.out.println("Adding " + count + "rows");
                     added = true;
                 }
             }
         }
         if (!added) {
-System.out.println("Adding " + count + "rows");
+            System.out.println("Adding " + count + "rows");
             stmt.executeBatch();
         }
         conn.commit();

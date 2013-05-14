@@ -1,12 +1,9 @@
 package com.sap.etl.example;
 
+import com.sap.hadoop.concurrent.ContextFactory;
+import com.sap.hadoop.concurrent.IContext;
 import com.sap.hadoop.conf.ConfigurationManager;
-import com.sap.hadoop.etl.ContextFactory;
-import com.sap.hadoop.etl.ETLStepContextException;
-import com.sap.hadoop.etl.IContext;
 import com.sap.hadoop.etl.SQLStep;
-
-import java.io.IOException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -25,42 +22,42 @@ public class SQLExample1 {
         // <1> Now create "category" table
         ///////////////////////////////////////////////////////////////////////
         SQLStep createCategoryTable = new SQLStep("CREATE TABLE category");
-        createCategoryTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS category " +
-                                    " ( article_id INT, name STRING ) " +
-                                    "   ROW FORMAT DELIMITED " +
-                                    "   FIELDS TERMINATED BY '\t' " +
-                                    "   LINES TERMINATED BY '\n'" +
-                                    "   STORED AS TEXTFILE ");
+        createCategoryTable.setSql(" CREATE EXTERNAL TABLE IF NOT EXISTS category " +
+                " ( article_id INT, name STRING ) " +
+                "   ROW FORMAT DELIMITED " +
+                "   FIELDS TERMINATED BY '\t' " +
+                "   LINES TERMINATED BY '\n'" +
+                "   STORED AS TEXTFILE ");
 
         ///////////////////////////////////////////////////////////////////////
         // <2> Load the TSV to "category" table
         ///////////////////////////////////////////////////////////////////////
         SQLStep loadCategoryTable = new SQLStep("LOAD TABLE category");
-        loadCategoryTable.setSql(   " LOAD DATA INPATH '" + context.getRemoteWorkingFolder() + "small_category.tsv' " +
-                                    " OVERWRITE INTO TABLE category");
+        loadCategoryTable.setSql(" LOAD DATA INPATH '" + context.getRemoteWorkingFolder() + "small_category.tsv' " +
+                " OVERWRITE INTO TABLE category");
 
         ///////////////////////////////////////////////////////////////////////
         // <3> Now create "sections" table
         ///////////////////////////////////////////////////////////////////////
         SQLStep createSectionsTable = new SQLStep("CREATE TABLE sections");
-        createSectionsTable.setSql( " CREATE EXTERNAL TABLE IF NOT EXISTS sections " +
-                                    " ( sessionNum BIGINT, " +
-                                    "   parent_id BIGINT, " +
-                                    "   ordinal INT, " +
-                                    "   article_id INT, " +
-                                    "   name STRING, " +
-                                    "   xml STRING ) " +
-                                    "   ROW FORMAT DELIMITED " +
-                                    "   FIELDS TERMINATED BY '\t' " +
-                                    "   LINES TERMINATED BY '\n'" +
-                                    "   STORED AS TEXTFILE ");
+        createSectionsTable.setSql(" CREATE EXTERNAL TABLE IF NOT EXISTS sections " +
+                " ( sessionNum BIGINT, " +
+                "   parent_id BIGINT, " +
+                "   ordinal INT, " +
+                "   article_id INT, " +
+                "   name STRING, " +
+                "   xml STRING ) " +
+                "   ROW FORMAT DELIMITED " +
+                "   FIELDS TERMINATED BY '\t' " +
+                "   LINES TERMINATED BY '\n'" +
+                "   STORED AS TEXTFILE ");
 
         ///////////////////////////////////////////////////////////////////////
         // <4> Load the TSV to "sections" table
         ///////////////////////////////////////////////////////////////////////
         SQLStep loadSectionsTable = new SQLStep("LOAD TABLE sections");
-        loadSectionsTable.setSql(   " LOAD DATA INPATH '" + context.getRemoteWorkingFolder() + "small_sections.tsv' " +
-                                    " OVERWRITE INTO TABLE sections");
+        loadSectionsTable.setSql(" LOAD DATA INPATH '" + context.getRemoteWorkingFolder() + "small_sections.tsv' " +
+                " OVERWRITE INTO TABLE sections");
 
         context.addStep(createCategoryTable);                      // Add <1>
         context.addStep(createSectionsTable);                      // Add <3>

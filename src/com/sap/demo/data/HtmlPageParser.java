@@ -4,7 +4,6 @@ package com.sap.demo.data;
 import org.apache.commons.csv.CSVUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -92,6 +91,7 @@ public class HtmlPageParser {
             int homePageFromLogin = urlString.indexOf("ref=gno_logo");
             int searchResultIndex = urlString.indexOf("/s/ref=");
             String id = null;
+            String key = file.getName().replace(".headers", "");
             if (id == null && dpIndex > 0) {
                 id = urlString.substring(dpIndex + "/dp/".length(), dpIndex + "/dp/".length() + 10);
             }
@@ -103,7 +103,8 @@ public class HtmlPageParser {
                 id = urlString.substring(eIndex + "/e/".length(), eIndex + "/e/".length() + 10);
             }
             if (id != null) {
-                idUrlMap.put(file.getName().replace(".headers", ""), id);
+                System.out.println("In getHeaderIdItemIdMap, key = " + key + ", id = " + id);
+                idUrlMap.put(key, id);
             }
         }
         return idUrlMap;
@@ -241,7 +242,7 @@ public class HtmlPageParser {
 
     public static String getCategory(String descriptionMeta) {
         String[] values = descriptionMeta.split(":");
-        return StringEscapeUtils.unescapeHtml4(values[values.length - 1].trim());
+        return values[values.length - 1].trim();
     }
 
     public static Map<String, String> getInformationMap(String content) throws IOException {

@@ -1,7 +1,6 @@
 package com.sap.demo;
 
 import com.sap.demo.dao.Item;
-import com.sap.demo.data.HtmlPageParser;
 import org.apache.commons.csv.CSVUtils;
 import org.apache.commons.io.FileUtils;
 
@@ -20,12 +19,11 @@ import java.util.*;
  */
 public class PosRowGenerator {
     private static Map<Integer, Double> MONTHLY_SALES_ADJ_FACTORS = new HashMap<Integer, Double>();
-    private static Map<String, Double> STORE_TYPE_ADJ_FACTORS = new HashMap<String, Double>();
     private static Map<String, Double> REGION_ADJ_FACTORS = new HashMap<String, Double>();
     private static Map<Integer, Double> DAY_OF_WEEK_FACTORS = new HashMap<Integer, Double>();
     private static Map<String, StateIncome> STATE_INCOMES = new HashMap<String, StateIncome>();
 
-    private static final long MAX_TX_DOLLAR = 32 * 1000 * 1000 * 12;
+    private static final long MAX_TX_DOLLAR = 300000000;
 
     private static final int MAX_BASKET_DOLLAR = 100;
 
@@ -35,16 +33,11 @@ public class PosRowGenerator {
 
     private static final Calendar END_CALENDAR = Calendar.getInstance();
 
-    //private static final Map<String, List<Store>> REGION_STORES = new HashMap<String, List<Store>>();
-
-    //private static final Map<String, List<Store>> TYPE_STORES = new HashMap<String, List<Store>>();
     private static List<Store> STORES = new ArrayList<Store>();
 
     private static int STORE_INDEX = 0;
 
     static {
-        // 0.871   0.892   0.962   0.972   0.997   0.978   0.968   0.981   0.912   0.962   1.099   1.415
-
         MONTHLY_SALES_ADJ_FACTORS.put(Calendar.JANUARY, 0.871D);
         MONTHLY_SALES_ADJ_FACTORS.put(Calendar.FEBRUARY, 0.892D);
         MONTHLY_SALES_ADJ_FACTORS.put(Calendar.MARCH, 0.962D);
@@ -67,12 +60,7 @@ public class PosRowGenerator {
         // Neighborhood Market
         // Marketside
 
-        STORE_TYPE_ADJ_FACTORS.put("Supercenter", 1D);
-        STORE_TYPE_ADJ_FACTORS.put("Wal-Mart", 1D);
-        STORE_TYPE_ADJ_FACTORS.put("CLUB", 0.45D);
-        STORE_TYPE_ADJ_FACTORS.put("DC", 0.85D);
-        STORE_TYPE_ADJ_FACTORS.put("Neighborhood Market", 0.6D);
-        STORE_TYPE_ADJ_FACTORS.put("Marketside", 0.35D);
+
         /*
         START_CALENDAR.set(Calendar.YEAR, 2010);
         START_CALENDAR.set(Calendar.MONTH, Calendar.JANUARY);
@@ -83,7 +71,7 @@ public class PosRowGenerator {
         START_CALENDAR.set(Calendar.MILLISECOND, 0);
         */
 
-        START_CALENDAR.set(Calendar.YEAR, 2009);
+        START_CALENDAR.set(Calendar.YEAR, 2012);
         START_CALENDAR.set(Calendar.MONTH, Calendar.JANUARY);
         START_CALENDAR.set(Calendar.DAY_OF_MONTH, 1);
         START_CALENDAR.set(Calendar.HOUR_OF_DAY, 0);
@@ -91,9 +79,9 @@ public class PosRowGenerator {
         START_CALENDAR.set(Calendar.SECOND, 0);
         START_CALENDAR.set(Calendar.MILLISECOND, 0);
 
-        END_CALENDAR.set(Calendar.YEAR, 2010);
-        END_CALENDAR.set(Calendar.MONTH, Calendar.DECEMBER);
-        END_CALENDAR.set(Calendar.DAY_OF_MONTH, 31);
+        END_CALENDAR.set(Calendar.YEAR, 2013);
+        END_CALENDAR.set(Calendar.MONTH, Calendar.MARCH);
+        END_CALENDAR.set(Calendar.DAY_OF_MONTH, 10);
         END_CALENDAR.set(Calendar.HOUR_OF_DAY, 23);
         END_CALENDAR.set(Calendar.MINUTE, 59);
         END_CALENDAR.set(Calendar.SECOND, 59);
@@ -130,58 +118,44 @@ public class PosRowGenerator {
             }
 
             STORES = getStores();
-            //for (Store store: stores) {
-            /*
-            List<Store> regStore = REGION_STORES.get(store.region);
-            if (regStore != null) {
-                regStore.add(store);
-            } else {
-                regStore = new ArrayList<Store>();
-                regStore.add(store);
-                REGION_STORES.put(store.region, regStore);
-            }
-
-            List<Store> typeStore = TYPE_STORES.get(store.storeType);
-            if (typeStore != null) {
-                typeStore.add(store);
-            } else {
-                typeStore = new ArrayList<Store>();
-                typeStore.add(store);
-                TYPE_STORES.put(store.storeType, typeStore);
-            }
-            */
-            //STORES.add(store);
-            //}
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public static void main(String[] arg) throws Exception {
-
-        Map<String, Item> itemMap = Utility.getItemMap(null);
-        Map<String, String> headerIdItemIdMap = HtmlPageParser.getHeaderIdItemIdMap();
-        ViewedPageGenerator.ViewedPage[] pages = ViewedPageGenerator.getViewedPages();
+        Collection<Item> items = Utility.getItems();
+        Map<String, Item> itemMap = Utility.getItemMap(items);
+        //Map<String, String> headerIdItemIdMap = HtmlPageParser.getHeaderIdItemIdMap();
+        //ViewedPageGenerator.ViewedPage[] pages = ViewedPageGenerator.getViewedPages();
         Map<String, Integer> dateMap = Utility.getDateMap();
-        int count = 0;
-        Connection conn = Utility.getConnection();
         while (START_CALENDAR.before(END_CALENDAR)) {
-            long start = System.currentTimeMillis();
-            long txMax = Utility.getFuzzyNumber(MAX_TX_DOLLAR, 1785, 9215);
-            System.out.println("Working on " + Utility.SIMPLE_DATE_FORMAT.format(START_CALENDAR.getTime()));
-            Collection<Transaction> transactions = getTransactions(itemMap, headerIdItemIdMap, pages, dateMap, txMax, START_CALENDAR);
-            System.out.println("Got " + transactions.size() + " transactions.");
-            Utility.insertTransactions(conn, transactions);
-            long end = System.currentTimeMillis();
-            System.out.println("Took " + ((end - start) / 1000) + " seconds...\n\n");
+            String dateString = Utility.SIMPLE_DATE_FORMAT.format(START_CALENDAR.getTime());
+            String flagFilename = arg[0] + File.separator + dateString + ".flag";
+            File flagFile = new File(flagFilename);
+            if (!flagFile.exists()) {
+                Thread.sleep(200);
+                if (!flagFile.exists()) {
+                    flagFile.createNewFile();
+                    long start = System.currentTimeMillis();
+                    long txMax = Utility.getFuzzyNumber(MAX_TX_DOLLAR, 1785, 9215);
+                    System.out.println("Working on " + Utility.SIMPLE_DATE_FORMAT.format(START_CALENDAR.getTime()));
+                    Collection<Transaction> transactions = getTransactions(itemMap, null, null, dateMap, txMax, START_CALENDAR);
+                    System.out.println("Got " + transactions.size() + " transactions.");
+                    //Utility.insertTransactions(conn, transactions);
+                    Utility.writeTransactions(transactions, arg[0] + File.separator + dateString + ".csv");
+                    long end = System.currentTimeMillis();
+                    System.out.println("Took " + ((end - start) / 1000) + " seconds...\n\n");
+                }
+            }
             START_CALENDAR.add(Calendar.DATE, 1);
         }
     }
 
     public static List<StateIncome> getStateIncome() throws Exception {
-        List<String> stores = FileUtils.readLines(new File("C:\\projects\\data\\state\\stateIncome.csv"));
+        List<String> stateIncomeLines = FileUtils.readLines(new File("C:\\projects\\data\\state\\stateIncome.csv"));
         List<StateIncome> stateIncomes = new ArrayList<StateIncome>();
-        for (String store : stores) {
+        for (String store : stateIncomeLines) {
             String[] storeValues = CSVUtils.parseLine(store);
             StateIncome si = new StateIncome();
             if (storeValues[0] != null && !storeValues[0].equals("")) {
@@ -189,10 +163,11 @@ public class PosRowGenerator {
                 si.region = Utility.STATE_REGION.get(si.fullName);
                 si.income = Integer.parseInt(storeValues[1]);
                 stateIncomes.add(si);
-            } else {
-                StateIncome.avg = Integer.parseInt(storeValues[1]);
+                StateIncome.avg += Integer.parseInt(storeValues[1]);
             }
+            stateIncomes.add(si);
         }
+        StateIncome.avg = (int) ((double) StateIncome.avg / (double) stateIncomes.size());
         return stateIncomes;
     }
 
@@ -253,12 +228,18 @@ public class PosRowGenerator {
         double txDollars = 0;
         //int highPriced = 0;
         List<Transaction> transactions = new ArrayList<Transaction>();
+//System.out.println("REGION_ADJ_FACTORS.size() = " + REGION_ADJ_FACTORS.size());
+//System.out.println("STATE_INCOMES.size() = " + STATE_INCOMES.size());
         while (txDollars < txMax) {
             double keepChance = 1d;
             Store store = getStore();
-            keepChance = keepChance * STORE_TYPE_ADJ_FACTORS.get(store.storeType);
+//System.out.println("store.region="+store.region);
+//System.out.println("store.stateFullname="+store.stateFullname);
+//System.out.println("1, keepChance = " + keepChance);
             keepChance = keepChance * REGION_ADJ_FACTORS.get(store.region);
+//System.out.println("2, keepChance = " + keepChance);
             keepChance = keepChance * STATE_INCOMES.get(store.stateFullname).getAdjFactor();
+//System.out.println("3, keepChance = " + keepChance);
 
             if (Utility.RANDOM.nextInt(1000) < keepChance * 1000) {
                 Transaction tx = getTransaction(itemMap, headerIdItemIdMap, pages);
@@ -266,7 +247,10 @@ public class PosRowGenerator {
                 tx.dateId = dateMap.get(Utility.SIMPLE_DATE_FORMAT.format(nowCalendar.getTime()));
                 transactions.add(tx);
                 txDollars += tx.total;
+//System.out.println(tx.total);
             }
+
+            //System.out.println(txDollars/(double)txMax);
         }
         long end = System.currentTimeMillis();
         System.out.println("Transactions took " + (end - start) / 1000 + " seconds to generate...");
@@ -283,23 +267,32 @@ public class PosRowGenerator {
         int itemCountMax = Utility.getFuzzyNumber(AVG_ITEM_COUNT);
         int totalMax = Utility.getFuzzyNumber(MAX_BASKET_DOLLAR);
 
-        //System.out.println("max_total_basket_dollar: " + totalMax);
-        //System.out.println("max_item_count: " + itemCountMax);
-
+//System.out.println("max_total_basket_dollar: " + totalMax);
+//System.out.println("max_item_count: " + itemCountMax);
+//System.out.println("headerIdItemIdMap.size()="+headerIdItemIdMap.size());
+//System.out.println("itemMap.size()="+itemMap.size());
+        /*
         List<Item> items = new ArrayList<Item>();
+
         for (ViewedPageGenerator.ViewedPage page : pages) {
             Item item = itemMap.get(headerIdItemIdMap.get(page.pageId));
+System.out.println(page.pageId + "-->" + item);
             if (item != null) {
                 items.add(item);
             }
         }
+        */
+
+        String[] keys = itemMap.keySet().toArray(new String[0]);
 
         Map<Item, Integer> posMap = new HashMap<Item, Integer>();
         double total = 0;
         int itemCount = 0;
         while (true) {
-            Item item = items.get(Utility.RANDOM.nextInt(items.size()));
-            String priceStr = item.getColumn("UNIT_PRICE");
+            //Item item = items.get(Utility.RANDOM.nextInt(items.size()));
+            Item item = itemMap.get(keys[Utility.RANDOM.nextInt(keys.length)]);
+
+            double unitPrice = item.getUnitPrice();
             boolean keepAdding = false;
             if (total < totalMax) {
                 keepAdding = true;
@@ -320,7 +313,7 @@ public class PosRowGenerator {
 
 
             if (keepAdding) {
-                total += Double.parseDouble(priceStr);
+                total += unitPrice;
                 itemCount++;
                 if (posMap.containsKey(item)) {
                     posMap.put(item, posMap.get(item) + 1);
@@ -397,8 +390,8 @@ public class PosRowGenerator {
         public Transaction(Map<Item, Integer> map) throws Exception {
             this.itemCountMap = map;
             for (Map.Entry<Item, Integer> entry : itemCountMap.entrySet()) {
-                total += Utility.MONEY_FORMATTER.parse(entry.getKey().getColumn("UNIT_PRICE")).doubleValue() * entry.getValue();
-                cost += Utility.MONEY_FORMATTER.parse(entry.getKey().getColumn("UNIT_COST")).doubleValue() * entry.getValue();
+                total += entry.getKey().getUnitPrice();
+                cost += entry.getKey().getUnitCost();
             }
             revenue = total - cost;
         }
@@ -406,6 +399,7 @@ public class PosRowGenerator {
         @Override
         public String toString() {
             return "Transaction{" +
+                    "  itemCountMap.size() = " + itemCountMap.size() +
                     "  total=" + total +
                     ", cost=" + cost +
                     ", revenue=" + revenue +
@@ -428,6 +422,8 @@ public class PosRowGenerator {
         public static int avg;
 
         public double getAdjFactor() {
+//System.out.println("avg="+avg);
+//System.out.println("income="+income);
             return ((double) avg) / ((double) income);
         }
 

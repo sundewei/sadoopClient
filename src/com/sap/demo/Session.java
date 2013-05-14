@@ -11,8 +11,8 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class Session {
-    List<Long> timestamps = new LinkedList<Long>();
-    List<String> itemLookups = new LinkedList<String>();
+    public List<Long> timestamps = new LinkedList<Long>();
+    public List<String> itemLookups = new LinkedList<String>();
 
     public void addItemLookup(Long ts, String itemLookup) {
         timestamps.add(ts);

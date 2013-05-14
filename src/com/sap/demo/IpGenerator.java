@@ -93,7 +93,7 @@ public class IpGenerator {
     }
 
     private static TreeMap<Long, Long> getUsRange() throws Exception {
-        File file = new File("C:\\projects\\data\\ipRange\\usa.csv");
+        File file = new File(com.sap.demo.pos.Utility.BASE_FOLDER + "data/ipRange/usa.csv");
         TreeMap<Long, Long> map = new TreeMap<Long, Long>();
         List<String> lines = FileUtils.readLines(file);
         for (String line : lines) {
@@ -163,7 +163,7 @@ public class IpGenerator {
     }
     */
     public static Map<String, TreeMap<Long, Long>> getAllStateRangeMap() throws Exception {
-        String foldername = "C:\\projects\\data\\ipRange\\";
+        String foldername = com.sap.demo.pos.Utility.BASE_FOLDER + "data/ipRange/";
         File folder = new File(foldername);
         Map<String, TreeMap<Long, Long>> allMap = new HashMap<String, TreeMap<Long, Long>>();
         for (File file : folder.listFiles()) {

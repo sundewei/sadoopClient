@@ -1,0 +1,8 @@
+create table system.event_logs
+(
+	date_string char(10) not null,
+	user_id char(11) not null,
+	other_id varchar(21) not null,
+	event_type integer not null,
+	comments varchar(200)
+)

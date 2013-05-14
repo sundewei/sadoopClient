@@ -1,7 +1,9 @@
 package com.sap.etl.example;
 
+import com.sap.hadoop.concurrent.ContextFactory;
+import com.sap.hadoop.concurrent.IContext;
 import com.sap.hadoop.conf.ConfigurationManager;
-import com.sap.hadoop.etl.*;
+import com.sap.hadoop.etl.UploadStep;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,7 +17,7 @@ public class UploadExample {
     private static final String LOCAL_DATA_DIR = "C:\\data\\";
 
     public static void main(String[] arg) throws Exception {
-        ConfigurationManager cm = new ConfigurationManager("hadoop", "hadoop");
+        ConfigurationManager cm = new ConfigurationManager("lroot", "abcd1234");
         IContext context = ContextFactory.createContext(cm);
 
         // Upload step #1

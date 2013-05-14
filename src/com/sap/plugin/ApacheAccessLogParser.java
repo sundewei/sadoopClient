@@ -25,15 +25,7 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
 
 /**
  * Created by IntelliJ IDEA.
@@ -93,7 +85,7 @@ public class ApacheAccessLogParser implements ITask {
         REDUCE_VALUE_DELIMITER =
                 PROPERTIES.getProperty("reduceValueDelimiter") != null ? PROPERTIES.getProperty("reduceValueDelimiter") : "_";
         REDUCE_VALUE_SORT_ORDER =
-                PROPERTIES.getProperty("reduceValueSortOrder") != null ?  PROPERTIES.getProperty("reduceValueSortOrder") : "desc";
+                PROPERTIES.getProperty("reduceValueSortOrder") != null ? PROPERTIES.getProperty("reduceValueSortOrder") : "desc";
     }
 
     /**
@@ -183,11 +175,11 @@ public class ApacheAccessLogParser implements ITask {
 
             StringBuilder sb = new StringBuilder();
 
-            for (String sortedValue: sortedValues) {
+            for (String sortedValue : sortedValues) {
                 sb.append(sortedValue).append(",");
             }
 
-            VISITED_PRODUCTS.set(sb.deleteCharAt(sb.length() - 1) .toString());
+            VISITED_PRODUCTS.set(sb.deleteCharAt(sb.length() - 1).toString());
             context.write(REDUCE_KEY, VISITED_PRODUCTS);
         }
     }
@@ -205,7 +197,7 @@ public class ApacheAccessLogParser implements ITask {
     }
 
     private static void setStringList(Configuration conf, List<String> list, String prefix) {
-        for (int i=0; i<list.size(); i++) {
+        for (int i = 0; i < list.size(); i++) {
             conf.set(prefix + "_" + i, list.get(i));
         }
     }
@@ -231,32 +223,32 @@ public class ApacheAccessLogParser implements ITask {
         // Get a configuration from the Hadoop jars in the classpath at the server side
         ConfigurationManager cm = new ConfigurationManager("I827779", "hadoopsap");
         Configuration configuration = cm.getConfiguration();
-System.out.println("GGG 1");
+        System.out.println("GGG 1");
         configuration.set("MAP_KEY_COLUMN", MAP_KEY_COLUMN);
         setStringList(configuration, MAP_VALUE_COLUMNS, "MAP_VALUE_COLUMNS");
-System.out.println("GGG 2");
+        System.out.println("GGG 2");
         configuration.set("REDUCE_KEY_COLUMN", REDUCE_KEY_COLUMN);
         setStringList(configuration, REDUCE_VALUE_COLUMNS, "REDUCE_VALUE_COLUMNS");
-System.out.println("GGG 3");
+        System.out.println("GGG 3");
         configuration.set("REDUCE_VALUE_DELIMITER", REDUCE_VALUE_DELIMITER);
         configuration.set("REDUCE_VALUE_SORT_ORDER", REDUCE_VALUE_SORT_ORDER);
-System.out.println("GGG 4");
+        System.out.println("GGG 4");
         // The output folder MUST NOT be created, Hadoop will do it automatically
         IFileSystem filesystem = cm.getFileSystem();
 
         if (!INPUT_PATH.endsWith(File.separator)) {
             INPUT_PATH = INPUT_PATH + File.separator;
         }
-System.out.println("GGG 5");
+        System.out.println("GGG 5");
         if (!OUTPUT_PATH.endsWith(File.separator)) {
             OUTPUT_PATH = OUTPUT_PATH + File.separator;
         }
-System.out.println("GGG 6");
+        System.out.println("GGG 6");
         // Delete the output directory if it already exists
         if (filesystem.exists(OUTPUT_PATH)) {
             filesystem.deleteDirectory(OUTPUT_PATH);
         }
-System.out.println("GGG 7");
+        System.out.println("GGG 7");
         Job job = new Job(configuration, "ApacheAccessLogParser");
         // This is a must step to tell Hadoop to load the jar file containing this class
         job.setJarByClass(ApacheAccessLogParser.class);
